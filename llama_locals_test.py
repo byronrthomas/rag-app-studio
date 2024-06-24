@@ -27,7 +27,7 @@ PERSIST_DIR = "/workspace/storage"
 
 # bge-base embedding model
 Settings.embed_model = HuggingFaceEmbedding(
-    model_name="BAAI/bge-base-en-v1.5", cache_folder=f"{STORAGE_BASE_DIR}/.hf-cache"
+    model_name="BAAI/bge-large-en-v1.5", cache_folder=f"{STORAGE_BASE_DIR}/.hf-cache"
 )
 
 # VLLM model
