@@ -25,7 +25,7 @@ def test_file_appears_in_list_after_upload(client):
 
 
 def test_try_completion_api(client):
-    data = {"context": "What did the author do growing up?"}
+    data = {"prompt": "What did the author do growing up?"}
     response = client.post("/trycompletion", json=data)
     assert response.status_code == 200
     assert isinstance(response.json["completion"], str)
@@ -33,7 +33,7 @@ def test_try_completion_api(client):
 
 
 def test_completions_change_after_upload(client):
-    data = {"context": "What did the author do growing up?"}
+    data = {"prompt": "What did the author do growing up?"}
     response = client.post("/trycompletion", json=data)
     assert response.status_code == 200
     first_completion = response.json["completion"]
@@ -42,7 +42,7 @@ def test_completions_change_after_upload(client):
     response = client.post("/upload", data=data)
     assert response.status_code == 200
 
-    data = {"context": "What did the author do growing up?"}
+    data = {"prompt": "What did the author do growing up?"}
     response = client.post("/trycompletion", json=data)
     assert response.status_code == 200
     second_completion = response.json["completion"]
@@ -63,7 +63,7 @@ def test_checkpoint_api(client):
 
     response = client.post("/checkpoint", json={})
     assert response.status_code == 200
-    assert response.json["message"] == "Checkpoint"
+    assert response.json["message"] == "Checkpoint OK"
 
     response = client.get("/last-checkpoint")
     assert response.status_code == 200

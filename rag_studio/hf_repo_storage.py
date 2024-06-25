@@ -1,4 +1,5 @@
 from huggingface_hub import login, HfApi
+import secrets
 
 import logging
 
@@ -7,6 +8,23 @@ logger = logging.getLogger(__name__)
 # login()
 
 api = HfApi()
+
+
+def make_repo_name():
+    """Create a unique repo name by appending a random hex string to a base name."""
+    # Generate a random hex string of 4 bytes (8 characters)
+    random_hex = secrets.token_hex(4)
+    return f"rag-studio-{random_hex}"
+
+
+def init_repo(existing_repo_name):
+    """Initialise the repo, by choosing a new unique name if one is not provided.
+    If the repo name is passed, it will be assumed to exist already."""
+    repo_name = existing_repo_name
+    if not repo_name:
+        repo_name = make_repo_name()
+        api.create_repo(repo_id=repo_name, private=True, exist_ok=False)
+    return repo_name
 
 
 def create_repo():
@@ -33,3 +51,16 @@ def download_from_repo(repo_name, local_path):
     for fname in filtered_files:
         logger.info("Downloading %s to %s", fname, local_path)
         api.hf_hub_download(repo_id=repo_id, filename=fname, local_dir=local_path)
+
+
+def get_last_commit(repo_name):
+    commit_list = get_commits(repo_name)
+    if len(commit_list) == 0:
+        return None
+    return commit_list[0]
+
+
+def get_commits(repo_name):
+    repo_id = api.get_full_repo_name(repo_name)
+    commit_list = api.list_repo_commits(repo_id=repo_id)
+    return commit_list
