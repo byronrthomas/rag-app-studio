@@ -3,3 +3,4 @@ Flask ~= 3.0.3
 Flask-Cors ~= 4.0.1
 llama-index ~= 0.10.44
 python-dotenv ~= 0.19
+pytest ~= 8.2.2
