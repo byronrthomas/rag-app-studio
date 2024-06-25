@@ -11,6 +11,9 @@ def create_app(test_config=None):
     # Capture the current time
     startTime = datetime.now()
 
+    # Need to wire in the RAG storage initialisation here, based on path
+    # from config object
+
     @app.route("/")
     def hello_world():
         return jsonify({"message": "Hello, World!"})
@@ -38,11 +41,11 @@ def create_app(test_config=None):
 
     @app.route("/files")
     def list_files_api():
-        return jsonify({"message": "List of files"})
+        return jsonify({"files": []})
 
     @app.route("/trycompletion", methods=["POST"])
     def try_completion_api():
-        return jsonify({"message": "Try completion"})
+        return jsonify({"completion": "Try completion"})
 
     @app.route("/checkpoint", methods=["POST"])
     def checkpoint_api():
@@ -51,5 +54,11 @@ def create_app(test_config=None):
     @app.route("/inference-container-details", methods=["POST"])
     def inference_container_details_api():
         return jsonify({"message": "Inference container details"})
+
+    @app.route(
+        "/last-checkpoint",
+    )
+    def last_checkpoint_api():
+        return jsonify({"latest_change_time": "Last checkpoint"})
 
     return app
