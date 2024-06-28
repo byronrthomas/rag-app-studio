@@ -57,8 +57,10 @@ def set_model_params_from_request(llm: Vllm, data):
     )
     if "temperature" in data:
         llm.temperature = data["temperature"]
-    if "n" in data:
-        llm.n = data["n"]
+    if "n" in data and data["n"] != 1:
+        logger.error("Currently returning n > 1 completions is unsupported")
+        # llm.n = data["n"]
+        return "Currently returning n > 1 completions is unsupported"
     if "presence_penalty" in data:
         llm.presence_penalty = data["presence_penalty"]
     if "frequency_penalty" in data:
@@ -70,7 +72,17 @@ def set_model_params_from_request(llm: Vllm, data):
     if "max_tokens" in data:
         llm.max_new_tokens = data["max_tokens"]
     if "logprobs" in data:
-        llm.logprobs = data["logprobs"]
+        # llm.logprobs = data["logprobs"]
+        logger.error("Currently logprobs output is unsupported")
+        return "Currently logprobs output is unsupported"
+    if (
+        "tools" in data
+        or "tool_choice" in data
+        or "functions" in data
+        or "function_call" in data
+    ):
+        logger.error("Currently use of tools / functions is unsupported")
+        return "Currently use of tools / functions is unsupported"
     # Additionally the old completions API supports:
     # best_of: Optional[int] = None,
     if "best_of" in data:
@@ -145,7 +157,9 @@ def create_app(config=None, _engine=None):
             return jsonify({"error": "last message should be from user"}), 400
         history = [ChatMessage(**m) for m in messages[:-1]]
 
-        set_model_params_from_request(llm, data)
+        problem_str = set_model_params_from_request(llm, data)
+        if problem_str:
+            return jsonify({"error": problem_str}), 400
         completions = chat_engine.chat(messages[-1], chat_history=history)
         return jsonify({"completions": completions.response})
 
@@ -153,7 +167,9 @@ def create_app(config=None, _engine=None):
     def completions():
         """API to get completions for a given prompt."""
         data = request.json
-        set_model_params_from_request(llm, data)
+        problem_str = set_model_params_from_request(llm, data)
+        if problem_str:
+            return jsonify({"error": problem_str}), 400
         completions = query_engine.query(data["prompt"])
         return jsonify({"completions": completions.response})
 
