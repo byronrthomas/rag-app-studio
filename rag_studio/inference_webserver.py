@@ -15,6 +15,7 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.vllm import Vllm
 from llama_index.core.base.llms.types import ChatMessage
 from llama_index.core.schema import BaseComponent
+import secrets
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,108 @@ def set_model_params_from_request(llm: Vllm, data):
     if "best_of" in data:
         llm.best_of = data["best_of"]
 
+    return None
+
+
+def skeleton_openai_chat_response(req_id, completion_response, model_name="rag-chat"):
+    """Construct a response that's representative of OpenAI format responses,
+    even though we don't have most of the data that would be needed to construct it.
+    Just fill in what we don't have with blanks"""
+    # Example OpenAI chat completion response:
+    #     {
+    #   "id": "chatcmpl-123",
+    #   "object": "chat.completion",
+    #   "created": 1677652288,
+    #   "model": "gpt-3.5-turbo-0125",
+    #   "system_fingerprint": "fp_44709d6fcb",
+    #   "choices": [{
+    #     "index": 0,
+    #     "message": {
+    #       "role": "assistant",
+    #       "content": "\n\nHello there, how may I assist you today?",
+    #     },
+    #     "logprobs": null,
+    #     "finish_reason": "stop"
+    #   }],
+    #   "usage": {
+    #     "prompt_tokens": 9,
+    #     "completion_tokens": 12,
+    #     "total_tokens": 21
+    #   }
+    # }
+    return {
+        "id": f"chatcmpl-{req_id}",
+        "object": "chat.completion",
+        "created": int(datetime.now().timestamp()),
+        "model": model_name,
+        "system_fingerprint": req_id,
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": completion_response,
+                },
+                "logprobs": None,
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {
+            "prompt_tokens": -1,
+            "completion_tokens": -1,
+            "total_tokens": -1,
+        },
+    }
+
+
+def skeleton_openai_completion_response(
+    req_id, completion_response, model_name="rag-query"
+):
+    """Construct a response that's representative of OpenAI format responses,
+    even though we don't have most of the data that would be needed to construct it.
+    Just fill in what we don't have with blanks"""
+    # Example OpenAI completion response:
+    #     {
+    #   "id": "cmpl-uqkvlQyYK7bGYrRHQ0eXlWi7",
+    #   "object": "text_completion",
+    #   "created": 1589478378,
+    #   "model": "gpt-3.5-turbo-instruct",
+    #   "system_fingerprint": "fp_44709d6fcb",
+    #   "choices": [
+    #     {
+    #       "text": "\n\nThis is indeed a test",
+    #       "index": 0,
+    #       "logprobs": null,
+    #       "finish_reason": "length"
+    #     }
+    #   ],
+    #   "usage": {
+    #     "prompt_tokens": 5,
+    #     "completion_tokens": 7,
+    #     "total_tokens": 12
+    #   }
+    # }
+    return {
+        "id": f"cmpl-{req_id}",
+        "object": "text_completion",
+        "created": int(datetime.now().timestamp()),
+        "model": model_name,
+        "system_fingerprint": req_id,
+        "choices": [
+            {
+                "text": completion_response,
+                "index": 0,
+                "logprobs": None,
+                "finish_reason": "length",
+            }
+        ],
+        "usage": {
+            "prompt_tokens": -1,
+            "completion_tokens": -1,
+            "total_tokens": -1,
+        },
+    }
+
 
 def create_app(config=None, _engine=None):
     """Create the main Flask app with the given config."""
@@ -138,8 +241,9 @@ def create_app(config=None, _engine=None):
             }
         )
 
+    MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.1"
     llm = make_llm(
-        "mistralai/Mistral-7B-Instruct-v0.1",
+        MODEL_NAME,
         f"{model_download_dir}/vllm-via-llama-models",
     )
     chat_engine = rag_storage.make_chat_engine(llm=llm)
@@ -148,6 +252,8 @@ def create_app(config=None, _engine=None):
     @app.post("/v1/chat/completions")
     def chat_completions():
         """API to get completions for a given prompt."""
+        req_id = secrets.token_hex(16)
+        logger.info("Request ID: %s", req_id)
         data = request.json
         messages = data.get("messages")
         if messages is None:
@@ -161,16 +267,24 @@ def create_app(config=None, _engine=None):
         if problem_str:
             return jsonify({"error": problem_str}), 400
         completions = chat_engine.chat(messages[-1], chat_history=history)
-        return jsonify({"completions": completions.response})
+        return jsonify(
+            skeleton_openai_chat_response(req_id, completions.response, MODEL_NAME)
+        )
 
     @app.post("/v1/completions")
     def completions():
         """API to get completions for a given prompt."""
+        req_id = secrets.token_hex(16)
+        logger.info("Request ID: %s", req_id)
         data = request.json
         problem_str = set_model_params_from_request(llm, data)
         if problem_str:
             return jsonify({"error": problem_str}), 400
         completions = query_engine.query(data["prompt"])
-        return jsonify({"completions": completions.response})
+        return jsonify(
+            skeleton_openai_completion_response(
+                req_id, completions.response, MODEL_NAME
+            )
+        )
 
     return app
