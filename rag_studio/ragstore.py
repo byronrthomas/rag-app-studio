@@ -20,7 +20,7 @@ def safe_extract_filename(doc_info: RefDocInfo):
 
 
 class RagStore:
-    def __init__(self, storage_path):
+    def __init__(self, storage_path, embed_model=None):
         if not storage_path:
             raise ValueError("Storage path cannot be empty")
         self.storage_path = storage_path
@@ -28,10 +28,12 @@ class RagStore:
             logger.info("Loading existing index from storage at %s", storage_path)
             # load the existing index
             storage_context = StorageContext.from_defaults(persist_dir=storage_path)
-            self.index = load_index_from_storage(storage_context)
+            self.index = load_index_from_storage(
+                storage_context, embed_model=embed_model
+            )
         else:
             logger.info("Beginning fresh index")
-            self.index = VectorStoreIndex(nodes=[])
+            self.index = VectorStoreIndex(nodes=[], embed_model=embed_model)
 
     def add_document(self, file_path):
         reader = SimpleDirectoryReader(input_files=[file_path])
@@ -48,5 +50,8 @@ class RagStore:
         logger.info("Persisting index to storage at %s", self.storage_path)
         self.index.storage_context.persist(persist_dir=self.storage_path)
 
-    def make_query_engine(self):
-        return self.index.as_query_engine()
+    def make_query_engine(self, llm=None):
+        return self.index.as_query_engine(llm)
+
+    def make_chat_engine(self, llm=None):
+        return self.index.as_chat_engine(chat_mode="condense_plus_context", llm=llm)
