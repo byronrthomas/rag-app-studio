@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 import sys
+from dotenv import dotenv_values
 from flask import Flask, jsonify, request, redirect
 from flask_cors import CORS
 from rag_studio.ragstore import RagStore
@@ -9,33 +10,65 @@ import logging
 from llama_index.core import (
     Settings,
 )
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.vllm import Vllm
+import gc
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_LLM_MODEL = "mistralai/Mistral-7B-Instruct-v0.1"
+DEFAULT_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
+
+
+def apply_defaults(config):
+    """Apply the default config values."""
+    return {
+        "models_download_folder": config.get(
+            "MODELS_DOWNLOAD_FOLDER", "/tmp/rag_store/models"
+        ),
+        "rag_storage_path": config.get(
+            "RAG_STORAGE_PATH", "/tmp/rag_store/rag_storage"
+        ),
+        "doc_storage_path": config.get(
+            "DOC_STORAGE_PATH", "/tmp/rag_store/doc_storage"
+        ),
+        "repo_name": config.get("REPO_NAME", None),
+    }
+
+
+def make_embedding_model(model_name, config):
+    """Initialise the embedding model with the given config."""
+    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+
+    models_base_dir = config["models_download_folder"]
+    # embedding model
+    return HuggingFaceEmbedding(
+        model_name=model_name,
+        cache_folder=f"{models_base_dir}/.hf-cache",
+    )
+
+
+def make_llm(llm_model, config):
+    """Initialise the LLM model with the given config."""
+    from llama_index.llms.vllm import Vllm
+
+    models_base_dir = config["models_download_folder"]
+    return Vllm(
+        model=llm_model,
+        download_dir=f"{models_base_dir}/vllm-via-llama-models",
+        vllm_kwargs={"max_model_len": 30000},
+    )
 
 
 def inference_engine(config={}):
     """Initialise the inference engine with the given config."""
-    models_base_dir = config.get("models_download_folder", "/workspace/models")
-    # bge-base embedding model
-    Settings.embed_model = HuggingFaceEmbedding(
-        model_name="BAAI/bge-large-en-v1.5",
-        cache_folder=f"{models_base_dir}/.hf-cache",
-    )
-    # VLLM model
-    Settings.llm = Vllm(
-        model="mistralai/Mistral-7B-Instruct-v0.1",
-        download_dir=f"{models_base_dir}/vllm-via-llama-models",
-        vllm_kwargs={"max_model_len": 30000},
-    )
-    # Just return a dummy object - to show that we have configured the engine
-    return {"configured": True}
+    engine = {}
+    engine["embed_model"] = make_embedding_model(DEFAULT_EMBEDDING_MODEL, config)
+    engine["llm"] = make_llm(DEFAULT_LLM_MODEL, config)
+    return engine
 
 
 def create_app(config=None, _engine=None):
     """Create the main Flask app with the given config."""
-    config = config or {}
+    config = apply_defaults(config or dotenv_values(".env"))
     app = Flask(__name__)
     CORS(app)
 
@@ -46,15 +79,16 @@ def create_app(config=None, _engine=None):
 
     # Need to wire in the RAG storage initialisation here, based on path
     # from config object
-    rag_storage_path = config.get("rag_storage_path", "/workspace/rag_storage")
+    rag_storage_path = config["rag_storage_path"]
     logger.info("RAG storage path: %s", rag_storage_path)
-    rag_storage = RagStore(rag_storage_path)
-    doc_storage_path = config.get("doc_storage_path", "/workspace/doc_storage")
+    rag_storage = RagStore(rag_storage_path, embed_model=_engine["embed_model"])
+    doc_storage_path = config["doc_storage_path"]
     logger.info("Document storage path: %s", doc_storage_path)
     if not os.path.exists(doc_storage_path):
         os.makedirs(doc_storage_path)
 
-    repo_name = init_repo(config.get("repo_name"))
+    logger.info("Initialising repo at %s", config["repo_name"])
+    repo_name = init_repo(config["repo_name"])
 
     @app.route("/healthcheck")
     def healthcheck_api():
@@ -65,6 +99,10 @@ def create_app(config=None, _engine=None):
                 "start_time": startTime.strftime("%Y-%m-%d %H:%M:%S"),
             }
         )
+
+    @app.route("/repo_name")
+    def get_repo_name():
+        return jsonify({"repo_name": repo_name})
 
     @app.route("/upload", methods=["POST"])
     def upload_file_api():
@@ -86,7 +124,9 @@ def create_app(config=None, _engine=None):
 
     @app.route("/trycompletion", methods=["POST"])
     def try_completion_api():
-        response = rag_storage.make_query_engine().query(request.json["prompt"])
+        response = rag_storage.make_query_engine(llm=_engine["llm"]).query(
+            request.json["prompt"]
+        )
         logger.debug("Response from query engine: %s", response)
         return jsonify({"completion": response.response})
 
