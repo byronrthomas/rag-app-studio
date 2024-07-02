@@ -3,6 +3,7 @@ import shutil
 import os
 from rag_studio.webserver import create_app, inference_engine
 import logging
+from huggingface_hub import HfApi
 
 logger = logging.getLogger(__name__)
 
@@ -13,17 +14,30 @@ def engine_fixture():
     return inference_engine({})
 
 
-@pytest.fixture(name="app")
-def app_fixture(engine):
+@pytest.fixture(name="test_config")
+def test_config_fixture():
     test_config = {
         "TESTING": True,
-        "rag_storage_path": "/tmp/rag_storage",
+        "RAG_STORAGE_PATH": "/tmp/rag_storage",
     }
     # Ensure storage path cleared out before each test
-    if os.path.exists(test_config["rag_storage_path"]):
-        logger.info("Clearing out storage path %s", test_config["rag_storage_path"])
-        shutil.rmtree(test_config["rag_storage_path"], ignore_errors=False)
+    if os.path.exists(test_config["RAG_STORAGE_PATH"]):
+        logger.info("Clearing out storage path %s", test_config["RAG_STORAGE_PATH"])
+        shutil.rmtree(test_config["RAG_STORAGE_PATH"], ignore_errors=False)
+    return test_config
 
+
+@pytest.fixture(name="config_with_repo")
+def preexisting_repo_fixture(test_config):
+    # Create a repo for testing
+    api = HfApi()
+    TEST_REPO_NAME = "test-model-1"
+    api.create_repo(repo_id=TEST_REPO_NAME, private=True, exist_ok=True)
+    return {**test_config, "REPO_NAME": TEST_REPO_NAME}
+
+
+@pytest.fixture(name="app")
+def app_fixture(engine, test_config):
     app = create_app(test_config, _engine=engine)
 
     print("App fixture created")
