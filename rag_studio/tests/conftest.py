@@ -1,17 +1,12 @@
 import pytest
 import shutil
 import os
-from rag_studio.webserver import create_app, inference_engine
+from rag_studio.model_builder import ModelBuilder
+from rag_studio.webserver import create_app, apply_defaults
 import logging
 from huggingface_hub import HfApi
 
 logger = logging.getLogger(__name__)
-
-
-@pytest.fixture(name="engine", scope="session")
-def engine_fixture():
-    logger.info("Creating engine fixture")
-    return inference_engine({})
 
 
 @pytest.fixture(name="test_config")
@@ -37,9 +32,10 @@ def preexisting_repo_fixture(test_config):
 
 
 @pytest.fixture(name="app")
-def app_fixture(engine, test_config):
-    app = create_app(test_config, _engine=engine)
-
+def app_fixture(test_config):
+    cfg = apply_defaults(test_config)
+    builder = ModelBuilder(cfg["models_download_folder"])
+    app = create_app(test_config, model_builder=builder)
     print("App fixture created")
     # other setup can go here
 

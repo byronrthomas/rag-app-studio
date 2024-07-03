@@ -4,6 +4,7 @@ import sys
 from dotenv import dotenv_values
 from flask import Flask, jsonify, request, redirect
 from flask_cors import CORS
+from rag_studio.model_builder import ModelBuilder
 from rag_studio.ragstore import RagStore
 from rag_studio.hf_repo_storage import init_repo, get_last_commit, upload_folder
 import logging
@@ -20,53 +21,32 @@ DEFAULT_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
 
 def apply_defaults(config):
     """Apply the default config values."""
+    rag_storage_path = config.get("RAG_STORAGE_PATH", "/tmp/rag_store/rag_storage")
+
     return {
         "models_download_folder": config.get(
             "MODELS_DOWNLOAD_FOLDER", "/tmp/rag_store/models"
         ),
-        "rag_storage_path": config.get(
-            "RAG_STORAGE_PATH", "/tmp/rag_store/rag_storage"
-        ),
+        "rag_storage_path": rag_storage_path,
         "doc_storage_path": config.get(
             "DOC_STORAGE_PATH", "/tmp/rag_store/doc_storage"
+        ),
+        "model_settings_path": config.get(
+            "MODEL_SETTINGS_PATH", f"{rag_storage_path}/model_settings.json"
         ),
         "repo_name": config.get("REPO_NAME", None),
     }
 
 
-def make_embedding_model(model_name, config):
-    """Initialise the embedding model with the given config."""
-    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-
-    models_base_dir = config["models_download_folder"]
-    # embedding model
-    return HuggingFaceEmbedding(
-        model_name=model_name,
-        cache_folder=f"{models_base_dir}/.hf-cache",
-    )
-
-
-def make_llm(llm_model, config):
-    """Initialise the LLM model with the given config."""
-    from llama_index.llms.vllm import Vllm
-
-    models_base_dir = config["models_download_folder"]
-    return Vllm(
-        model=llm_model,
-        download_dir=f"{models_base_dir}/vllm-via-llama-models",
-        vllm_kwargs={"max_model_len": 30000},
-    )
-
-
-def inference_engine(config={}):
-    """Initialise the inference engine with the given config."""
+def initial_engine(model_builder):
+    """Initialise the inference engine using the model builder."""
     engine = {}
-    engine["embed_model"] = make_embedding_model(DEFAULT_EMBEDDING_MODEL, config)
-    engine["llm"] = make_llm(DEFAULT_LLM_MODEL, config)
+    engine["embed_model"] = model_builder.make_embedding_model(DEFAULT_EMBEDDING_MODEL)
+    engine["llm"] = model_builder.make_llm(DEFAULT_LLM_MODEL)
     return engine
 
 
-def create_app(config=None, _engine=None):
+def create_app(config=None, model_builder=None):
     """Create the main Flask app with the given config."""
     config = apply_defaults(config or dotenv_values(".env"))
     app = Flask(__name__)
@@ -75,7 +55,9 @@ def create_app(config=None, _engine=None):
     # Capture the current time
     startTime = datetime.now()
 
-    _engine = _engine or inference_engine(config)
+    if not model_builder:
+        model_builder = ModelBuilder(config["models_download_folder"])
+    _engine = initial_engine(model_builder)
 
     # Need to wire in the RAG storage initialisation here, based on path
     # from config object
@@ -148,5 +130,18 @@ def create_app(config=None, _engine=None):
         if last_commit is None:
             return jsonify({"latest_change_time": None})
         return jsonify({"latest_change_time": last_commit.created_at})
+
+    @app.post("/model")
+    def update_model():
+        del _engine["llm"]
+        gc.collect()
+
+        logger.info("Loading the model %s", request.json["model_name"])
+        _engine["llm"] = model_builder.make_llm(request.json["model_name"])
+        return jsonify({"message": "Model updated"})
+
+    @app.route("/model-name")
+    def get_model_name():
+        return jsonify({"model_name": DEFAULT_LLM_MODEL})
 
     return app
