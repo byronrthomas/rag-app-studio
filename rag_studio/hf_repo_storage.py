@@ -27,12 +27,6 @@ def init_repo(existing_repo_name):
     return repo_name
 
 
-def create_repo():
-    repo_name = "test-model-1"
-    api.create_repo(repo_id=repo_name, private=True, exist_ok=True)
-    return repo_name
-
-
 def upload_folder(repo_name, model_path):
     repo_id = api.get_full_repo_name(repo_name)
     api.upload_folder(repo_id=repo_id, folder_path=model_path)
