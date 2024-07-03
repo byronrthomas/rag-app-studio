@@ -49,9 +49,7 @@ def preexisting_repo_fixture(test_config):
 
 @pytest.fixture(name="app")
 def app_fixture(test_config):
-    cfg = apply_defaults(test_config)
-    builder = ModelBuilder(cfg["models_download_folder"])
-    app = create_app(test_config, model_builder=builder)
+    app = create_app(test_config)
     print("App fixture created")
     # other setup can go here
 

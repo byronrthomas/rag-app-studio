@@ -25,8 +25,16 @@ DEFAULT_LLM_MODEL = "mistralai/Mistral-7B-Instruct-v0.1"
 DEFAULT_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
 
 
-def apply_defaults(config):
+def apply_defaults(config_in, from_dot_env=None):
     """Apply the default config values."""
+    # Allow from_dot_env to override the config
+    if from_dot_env:
+        config = {**config_in, **from_dot_env}
+    else:
+        config = config_in
+    logger.info("Original config: %s", config_in)
+    logger.info("Dotenv config: %s", from_dot_env)
+    logger.info("Merged config: %s", config)
     rag_storage_path = config.get("RAG_STORAGE_PATH", "/tmp/rag_store/rag_storage")
 
     return {
@@ -91,7 +99,7 @@ def init_settings(config, repo_name):
 
 def create_app(config=None, model_builder=None):
     """Create the main Flask app with the given config."""
-    config = apply_defaults(config or dotenv_values(".env"))
+    config = apply_defaults(config, dotenv_values(".env"))
     app = Flask(__name__)
     CORS(app)
 

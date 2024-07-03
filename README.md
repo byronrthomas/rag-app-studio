@@ -43,3 +43,20 @@ Given this, we decided to only initially support two forms of evaluation:
 
 1. Use user-specified pairs of test query and ideal responses, and check the "semantic similarity" of the application's response to the query vs the user-specified "ideal response"
 2. Use the inference LLM to work out whether the document retrieval is working well - the LLM has not been used for this part of the process, so it can fairly be asked whether some document chunk is relevant to a user's query
+
+## Developer instructions
+
+### Install deps
+
+This project was developed with Python 3.11.8 and is not currently intended to be supported for other versions.
+We recommend using a tool like `pyenv` with `virtualenv` (or something equivalent like conda/poetry) to install specific python
+versions and to keep libraries in use for different projects isolated from each other.
+
+To install deps needed to run without a GPU run:
+
+`pip install -r requirements-cpu.txt`
+
+### Needs huggingFace access token
+
+In order to run any tests or run the server locally, you must have an access token that can write to a repo, and
+tell huggingface about it using `huggingface-cli login`

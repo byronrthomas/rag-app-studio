@@ -43,6 +43,7 @@ class RagStore:
         transformations = transformations_from_settings_or_context(Settings, None)
         nodes = run_transformations(docs, transformations)
         self.index.insert_nodes(nodes)
+        logger.info("Added document %s of %d nodes to the index", file_path, len(nodes))
 
     def list_files(self):
         doc_info_by_id = self.index.docstore.get_all_ref_doc_info()
