@@ -66,3 +66,16 @@ def test_e2e_smoke_test(client):
     # Check last checkpoint time
     last_checkpoint = last_checkpoint_api(client)
     assert last_checkpoint != initial_checkpoint
+
+    # Finally try to change the LLM model
+    data = {
+        "model_name": "google/gemma-2b"
+        # , "clear_space": True
+    }
+    response = client.post("/model", json=data)
+    assert response.status_code == 200
+    assert response.json["message"] == "Model updated"
+    completion_3 = try_completion_api(client)
+    assert completion_3 != completion_2
+    model_name = response.json["model"]
+    assert model_name == "google/gemma-2b"

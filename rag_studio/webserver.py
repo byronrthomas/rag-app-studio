@@ -99,7 +99,7 @@ def init_settings(config, repo_name):
 
 def create_app(config=None, model_builder=None):
     """Create the main Flask app with the given config."""
-    config = apply_defaults(config, dotenv_values(".env"))
+    config = apply_defaults(config or {}, dotenv_values(".env"))
     app = Flask(__name__)
     CORS(app)
 
@@ -192,6 +192,8 @@ def create_app(config=None, model_builder=None):
     def update_model():
         del _engine["llm"]
         gc.collect()
+        if request.json.get("clear_space") == True:
+            model_builder.clear_vllm_models_folder()
 
         logger.info("Loading the model %s", request.json["model_name"])
         settings["model"] = request.json["model_name"]
