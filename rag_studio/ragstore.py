@@ -20,14 +20,16 @@ def safe_extract_filename(doc_info: RefDocInfo):
 
 
 class RagStore:
-    def __init__(self, storage_path, embed_model=None):
-        if not storage_path:
-            raise ValueError("Storage path cannot be empty")
-        self.storage_path = storage_path
-        if os.path.exists(storage_path):
-            logger.info("Loading existing index from storage at %s", storage_path)
+    def __init__(self, storage_root, embed_model=None):
+        if not storage_root:
+            raise ValueError("Storage root cannot be empty")
+        self.storage_path = f"{storage_root}/index"
+        if os.path.exists(self.storage_path):
+            logger.info("Loading existing index from storage at %s", self.storage_path)
             # load the existing index
-            storage_context = StorageContext.from_defaults(persist_dir=storage_path)
+            storage_context = StorageContext.from_defaults(
+                persist_dir=self.storage_path
+            )
             self.index = load_index_from_storage(
                 storage_context, embed_model=embed_model
             )

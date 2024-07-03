@@ -1,3 +1,5 @@
+import os
+import shutil
 from huggingface_hub import login, HfApi
 import secrets
 
@@ -42,6 +44,9 @@ def download_from_repo(repo_name, local_path):
     #     len(filtered_files),
     # )
     filtered_files = all_files
+    # Clear out the local path
+    shutil.rmtree(local_path, ignore_errors=True)
+    os.makedirs(local_path, exist_ok=True)
     for fname in filtered_files:
         logger.info("Downloading %s to %s", fname, local_path)
         api.hf_hub_download(
@@ -49,6 +54,16 @@ def download_from_repo(repo_name, local_path):
             filename=fname,
             local_dir=local_path,
         )
+
+
+def download_file(repo_name, file_name, local_path):
+    if not os.path.exists(local_path):
+        os.makedirs(local_path)
+    api.hf_hub_download(
+        repo_id=api.get_full_repo_name(repo_name),
+        filename=file_name,
+        local_dir=local_path,
+    )
 
 
 def list_files(repo_name):
