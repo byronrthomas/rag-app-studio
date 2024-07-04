@@ -29,13 +29,20 @@ class ModelBuilder:
     def make_llm(self, llm_model):
         """Initialise the LLM model with the given config."""
         from llama_index.llms.vllm import Vllm
+        import torch
 
         max_possible_model_len = self.derive_max_possible_model_len(llm_model)
         logger.info("Max possible model length: %d", max_possible_model_len)
+        # Calculate number of available GPUs
+
         return Vllm(
             model=llm_model,
             download_dir=self.vllm_models_folder(),
-            vllm_kwargs={"max_model_len": min(max_possible_model_len, 30000)},
+            dtype="float16",
+            tensor_parallel_size=torch.cuda.device_count(),
+            vllm_kwargs={
+                "max_model_len": min(max_possible_model_len, 30000),
+            },
         )
 
     def vllm_models_folder(self):
