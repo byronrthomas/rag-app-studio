@@ -53,19 +53,21 @@
     </div>
   </div>
   <div class="content-block">
-    <h2>Try it out!</h2>
-    <form id="completionForm" method="post" action="{{ url_for('try_completion_api') }}" >
-      <div class="field-group">
-        <label>Prompt (no history):</label>
-        <textarea id="prompt" name="prompt"></textarea>
-      </div>
-      <div class="field-group">
-        <label>Last response:</label>
-        <textarea id="completion" name="completion" disabled=true>{{ content['completion'] }}</textarea>
-      </div>
-      <input type="submit" value="Complete" />
+    <div class="content-pane single-pane">
+        <h2>Try it out!</h2>
+        <form id="completionForm" method="post" action="{{ url_for('try_completion_api') }}" >
+        <div class="field-group">
+            <label>Prompt (no history):</label>
+            <textarea id="prompt" name="prompt"></textarea>
+        </div>
+        <div class="field-group">
+            <label>Last response:</label>
+            <textarea id="completion" name="completion" disabled=true>{{ content['completion'] }}</textarea>
+        </div>
+        <input type="submit" value="Complete" />
 
-    </form>
+        </form>
+    </div> 
   </div>
 
   <script>
