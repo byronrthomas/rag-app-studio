@@ -53,19 +53,22 @@ def test_e2e_smoke_test(client):
     # Upload a file
     upload_file(client)
     check_file_list(client, ["paul_graham_essay.txt"])
+    # Should have been checkpointed automatically
+    checkpoint_2 = last_checkpoint_api(client)
+    assert checkpoint_2 != initial_checkpoint
 
     # Check completion API
     completion_2 = try_completion_api(client)
     assert initial_completion != completion_2
 
     # Make a checkpoint
-    response = client.post("/checkpoint", json={})
-    assert response.status_code == 200
-    assert response.json["message"] == "Checkpoint OK"
+    # response = client.post("/checkpoint", json={})
+    # assert response.status_code == 200
+    # assert response.json["message"] == "Checkpoint OK"
 
     # Check last checkpoint time
     last_checkpoint = last_checkpoint_api(client)
-    assert last_checkpoint != initial_checkpoint
+    assert last_checkpoint == checkpoint_2
 
     # Finally try to change the LLM model
     data = {
@@ -75,7 +78,13 @@ def test_e2e_smoke_test(client):
     response = client.post("/model", json=data)
     assert response.status_code == 200
     assert response.json["message"] == "Model updated"
+
+    model_name = client.get("/model-name").json["model_name"]
+    assert model_name == "google/gemma-2b"
+
     completion_3 = try_completion_api(client)
     assert completion_3 != completion_2
-    model_name = response.json["model"]
-    assert model_name == "google/gemma-2b"
+
+    # Check last checkpoint time
+    last_checkpoint = last_checkpoint_api(client)
+    assert last_checkpoint != checkpoint_2

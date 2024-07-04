@@ -141,6 +141,10 @@ def create_app(config=None, model_builder=None):
     def get_repo_name():
         return {"repo_name": repo_name}
 
+    def checkpoint_docs():
+        rag_storage.write_to_storage()
+        upload_folder(repo_name, rag_storage.storage_path)
+
     def handle_file_upload():
         if "file" not in request.files:
             return "No file part in the request"
@@ -152,6 +156,7 @@ def create_app(config=None, model_builder=None):
             logger.info("Uploading file %s to %s", file.filename, write_path)
             file.save(write_path)
             rag_storage.add_document(write_path)
+            checkpoint_docs()
 
     @app.route("/upload", methods=["POST"])
     def upload_file_api():
@@ -182,12 +187,6 @@ def create_app(config=None, model_builder=None):
         response = rag_storage.make_query_engine(llm=_engine["llm"]).query(prompt)
         logger.debug("Response from query engine: %s", response)
         return response
-
-    @app.route("/checkpoint", methods=["POST"])
-    def checkpoint_api():
-        rag_storage.write_to_storage()
-        upload_folder(repo_name, rag_storage.storage_path)
-        return {"message": "Checkpoint OK"}
 
     @app.route("/inference-container-details", methods=["POST"])
     def inference_container_details_api():
