@@ -29,9 +29,12 @@ def init_repo(existing_repo_name):
     return repo_name
 
 
-def upload_folder(repo_name, model_path):
+def upload_folder(repo_name, model_path, path_in_repo=None):
+    logger.info("Uploading folder %s to repo %s", model_path, repo_name)
     repo_id = api.get_full_repo_name(repo_name)
-    api.upload_folder(repo_id=repo_id, folder_path=model_path)
+    api.upload_folder(
+        repo_id=repo_id, folder_path=model_path, path_in_repo=path_in_repo
+    )
 
 
 def download_from_repo(repo_name, local_path):
@@ -45,7 +48,9 @@ def download_from_repo(repo_name, local_path):
     # )
     filtered_files = all_files
     # Clear out the local path
-    shutil.rmtree(local_path, ignore_errors=True)
+    if os.path.exists(local_path):
+        logger.info("Clearing out local path %s", local_path)
+        shutil.rmtree(local_path, ignore_errors=False)
     os.makedirs(local_path, exist_ok=True)
     for fname in filtered_files:
         logger.info("Downloading %s to %s", fname, local_path)

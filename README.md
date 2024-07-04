@@ -43,7 +43,7 @@ tell huggingface about it using `huggingface-cli login`
 ### Build a new tag
 
 ```
-docker build --build-arg BASE_IMAGE_TAG=2.2 -t byronthomas712/trial-container:2.2-prod-start .
+docker build --build-arg BASE_IMAGE_TAG=2.2 -t byronthomas712/trial-container:2.2-prod-studio-1 .
 ```
 
 ### Run from tag

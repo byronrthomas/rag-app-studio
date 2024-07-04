@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+import shutil
 import sys
 from dotenv import dotenv_values
 from flask import Flask, jsonify, render_template, request, redirect
@@ -74,14 +75,21 @@ def write_settings(config, settings):
         json.dump(settings, f)
 
 
+def push_to_repo(repo_name, config):
+    upload_folder(repo_name, config["rag_storage_path"])
+
+
 def push_initial_model_settings(config, repo_name):
     """Push the initial model settings to the repo."""
     logger.info("Pushing initial model settings to repo %s", repo_name)
-    storage_path = os.path.dirname(config["model_settings_path"])
-    if not os.path.exists(storage_path):
-        os.makedirs(storage_path)
+    storage_path = config["rag_storage_path"]
+    if os.path.exists(storage_path):
+        logger.info("Clearing out storage path %s", storage_path)
+        # Remove the directory tree at storage_path, even if the dir is not empty
+        shutil.rmtree(storage_path)
+    os.makedirs(storage_path)
     write_settings(config, {"model": DEFAULT_LLM_MODEL})
-    upload_folder(repo_name, storage_path)
+    push_to_repo(repo_name, config)
 
 
 def init_settings(config, repo_name):
@@ -143,7 +151,7 @@ def create_app(config=None, model_builder=None):
 
     def checkpoint_docs():
         rag_storage.write_to_storage()
-        upload_folder(repo_name, rag_storage.storage_path)
+        push_to_repo(repo_name, config)
 
     def handle_file_upload():
         if "file" not in request.files:
@@ -211,7 +219,7 @@ def create_app(config=None, model_builder=None):
         logger.info("Loading the model %s", request.json["model_name"])
         settings["model"] = request.json["model_name"]
         write_settings(config, settings)
-        upload_folder(repo_name, config["rag_storage_path"])
+        push_to_repo(repo_name, config)
 
         _engine["llm"] = model_builder.make_llm(request.json["model_name"])
         return {"message": "Model updated"}
