@@ -8,8 +8,8 @@ import pytest
 from rag_studio.hf_repo_storage import download_from_repo, get_last_commit, list_files
 from rag_studio.tests.conftest import TEST_INITIAL_MODEL, TEST_REPO_NAME
 from rag_studio.tests.test_utils import cleanup_temp_folder, make_temp_folder
-from rag_studio.webserver import apply_defaults, create_app, DEFAULT_LLM_MODEL
-import rag_studio.webserver as ws
+from rag_studio.studio_webserver import apply_defaults, create_app, DEFAULT_LLM_MODEL
+import rag_studio.studio_webserver as ws
 
 
 @pytest.fixture(name="mock_models")

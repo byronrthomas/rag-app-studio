@@ -3,7 +3,7 @@ import shutil
 import os
 from rag_studio.model_builder import ModelBuilder
 from rag_studio.tests.test_utils import make_temp_folder
-from rag_studio.webserver import create_app, apply_defaults
+from rag_studio.studio_webserver import create_app, apply_defaults
 import logging
 from huggingface_hub import HfApi
 
