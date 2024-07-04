@@ -53,8 +53,14 @@ class RagStore:
         logger.info("Persisting index to storage at %s", self.storage_path)
         self.index.storage_context.persist(persist_dir=self.storage_path)
 
-    def make_query_engine(self, llm=None):
+    def make_query_engine(self, llm):
         return self.index.as_query_engine(llm)
 
-    def make_chat_engine(self, llm=None):
-        return self.index.as_chat_engine(chat_mode="condense_plus_context", llm=llm)
+    def make_chat_engine(self, llm, chat_prompts):
+        kwargs = {}
+        if chat_prompts:
+            kwargs["context_prompt"] = chat_prompts["context_prompt"]
+            kwargs["condense_prompt"] = chat_prompts["condense_prompt"]
+        return self.index.as_chat_engine(
+            chat_mode="condense_plus_context", llm=llm, **kwargs
+        )

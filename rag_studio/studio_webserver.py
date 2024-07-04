@@ -15,8 +15,10 @@ from rag_studio.hf_repo_storage import (
     upload_folder,
 )
 import logging
-from llama_index.core import (
-    Settings,
+from llama_index.core import PromptTemplate
+from llama_index.core.chat_engine.condense_plus_context import (
+    DEFAULT_CONDENSE_PROMPT_TEMPLATE,
+    DEFAULT_CONTEXT_PROMPT_TEMPLATE,
 )
 import gc
 
@@ -75,8 +77,21 @@ def write_settings(config, settings):
         json.dump(settings, f)
 
 
+def chat_prompts_from_settings(settings):
+    default_prompts = {
+        "condense_prompt": DEFAULT_CONDENSE_PROMPT_TEMPLATE,
+        "context_prompt": DEFAULT_CONTEXT_PROMPT_TEMPLATE,
+    }
+    return settings.get("chat_prompts", default_prompts)
+
+
 def push_to_repo(repo_name, config):
     upload_folder(repo_name, config["rag_storage_path"])
+
+
+def push_settings_update(config, settings):
+    write_settings(config, settings)
+    push_to_repo(config["repo_name"], config)
 
 
 def push_initial_model_settings(config, repo_name):
@@ -88,8 +103,7 @@ def push_initial_model_settings(config, repo_name):
         # Remove the directory tree at storage_path, even if the dir is not empty
         shutil.rmtree(storage_path)
     os.makedirs(storage_path)
-    write_settings(config, {"model": DEFAULT_LLM_MODEL})
-    push_to_repo(repo_name, config)
+    push_settings_update(config, {"model": DEFAULT_LLM_MODEL})
 
 
 def init_settings(config, repo_name):
@@ -185,16 +199,29 @@ def create_app(config=None, model_builder=None):
     def list_files_api():
         return {"files": rag_storage.list_files()}
 
+    def complete_prompt(prompt):
+        response = rag_storage.make_query_engine(llm=_engine["llm"]).query(prompt)
+        logger.debug("Response from query engine: %s", response)
+        return response
+
     @app.route("/trycompletion", methods=["POST"])
     def try_completion_api():
         prompt = request.json["prompt"]
         response = complete_prompt(prompt)
         return {"completion": response.response}
 
-    def complete_prompt(prompt):
-        response = rag_storage.make_query_engine(llm=_engine["llm"]).query(prompt)
-        logger.debug("Response from query engine: %s", response)
+    def complete_chat(messages):
+        response = rag_storage.make_chat_engine(
+            llm=_engine["llm"], chat_prompts=chat_prompts_from_settings(settings)
+        ).chat(messages)
+        logger.debug("Response from chat engine: %s", response)
         return response
+
+    @app.route("/try-chat", methods=["POST"])
+    def try_chat_api():
+        prompt = request.json["messages"]
+        response = complete_chat(prompt)
+        return {"completion": response.response}
 
     @app.route("/inference-container-details", methods=["POST"])
     def inference_container_details_api():
@@ -218,8 +245,7 @@ def create_app(config=None, model_builder=None):
 
         logger.info("Loading the model %s", request.json["model_name"])
         settings["model"] = request.json["model_name"]
-        write_settings(config, settings)
-        push_to_repo(repo_name, config)
+        push_settings_update(config, settings)
 
         _engine["llm"] = model_builder.make_llm(request.json["model_name"])
         return {"message": "Model updated"}
@@ -234,6 +260,42 @@ def create_app(config=None, model_builder=None):
         response = complete_prompt(prompt)
         return f"<div>{response}</div>"
 
+    @app.route("/chat-prompts")
+    def chat_prompts():
+        return chat_prompts_from_settings(settings)
+
+    @app.post("/update-chat-prompts")
+    def update_chat_prompts():
+        chat_prompts = request.json
+        settings["chat_prompts"] = chat_prompts
+        push_settings_update(config, settings)
+        return {"message": "Chat prompts updated"}
+
+    @app.route("/query-prompts")
+    def query_prompts():
+        prompts = rag_storage.make_query_engine(llm=_engine["llm"]).get_prompts()
+        logger.info("Query prompts: %s", prompts)
+        res = {k: v.default_template.template for k, v in prompts.items()}
+        return res
+
+    @app.post("/update-prompt")
+    def update_prompt():
+        qa_prompt_tmpl_str = (
+            "Context information is below.\n"
+            "---------------------\n"
+            "{context_str}\n"
+            "---------------------\n"
+            "Given the context information and not prior knowledge, "
+            "answer the query in the style of a Shakespeare play.\n"
+            "Query: {query_str}\n"
+            "Answer: "
+        )
+        qa_prompt_tmpl = PromptTemplate(qa_prompt_tmpl_str)
+        prompts = {"response_synthesizer:text_qa_template": qa_prompt_tmpl}
+
+        rag_storage.make_query_engine(llm=_engine["llm"]).update_prompts(prompts)
+        return {"message": "Prompt updated"}
+
     @app.route("/")
     def home():
         content = {
@@ -243,6 +305,8 @@ def create_app(config=None, model_builder=None):
             "embed_model": DEFAULT_EMBEDDING_MODEL,
             "completion": "",
             "last_checkpoint": last_checkpoint_api()["latest_change_time"],
+            "chat_prompts": chat_prompts(),
+            # "query_prompts": query_prompts(),
         }
         return render_template("main.html", content=content)
 
