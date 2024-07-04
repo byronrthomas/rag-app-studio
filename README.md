@@ -1,25 +1,4 @@
-# Trial container
-
-## Build a new tag
-
-```
-docker build -t byronthomas712/trial-container:0.1 .
-```
-
-## Run from tag
-
-```
-docker run -d -p 5000:5000 --rm --name theta-container-trial byronthomas712/trial-container:0.1 --bind-all
-```
-
-### NOTES on DigitalOcean bits
-
-cd /tmp/trial1/
-python3 -m local_embeddings_trial
-
-docker run -it --rm --network=host -v /root/trial1:/tmp/trial1 --cpuset-cpus=0 --cpuset-mems=0 vllm-cpu-env
-
-# First version that actually did something helpful was a 16GB
+# Rag Studio
 
 ## Design choices
 
@@ -60,3 +39,15 @@ To install deps needed to run without a GPU run:
 
 In order to run any tests or run the server locally, you must have an access token that can write to a repo, and
 tell huggingface about it using `huggingface-cli login`
+
+### Build a new tag
+
+```
+docker build --build-arg BASE_IMAGE_TAG=2.2 -t byronthomas712/trial-container:2.2-prod-start .
+```
+
+### Run from tag
+
+```
+docker run -d -p 5000:5000 --rm --name theta-container-trial byronthomas712/trial-container:0.1 --bind-all
+```
