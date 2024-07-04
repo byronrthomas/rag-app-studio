@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Saved to Repo {{content['repo_name'] }}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <div class="content-block">
+    <div class="content-pane">
+        <h2>Knowledge-base (for retrieval)</h2>
+        <div>
+            <div class="field-group">
+                <label>Embedding model:</label>
+                <input type="text" id="_embed_model" name="_embed_model" value="{{ content['embed_model'] }}" disabled=true />
+            </div>
+            <div>
+                <label>Files uploaded:</label>
+                <ul>
+                    {% for file in content['files'] %}
+                        <li>{{ file }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="field-group">
+                <label>Latest checkpoint:</label>
+                <input type="text" id="_checkpoint" name="_checkpoint" value="{{ content['last_checkpoint'] }}" disabled=true />
+            </div>
+            <div class="field-group">
+
+                <label>Upload file:</label>
+                <form action="{{ url_for('upload_file_view') }}" id="fileUploadForm" method="post" enctype="multipart/form-data">
+                    <input type="file" id="file" name="file" />
+                    <input type="submit" value="Upload" />
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="content-pane">
+        <h2>LLM (for generation)</h2>
+        <div>
+            <div class="field-group">
+                <label>Model name:</label>
+                <input type="text" id="_model_name" name="_model_name" value="{{ content['llm_model'] }}" disabled=true />
+            </div>
+            <form id="llmModelForm" method="post" action="{{ url_for('update_model') }}" >
+            <div class="field-group">
+                <label>Change the model:</label>
+                <input type="text" id="model_name" name="model_name" placeholder="{{ content['llm_model'] }}"  />
+                <input type="submit" value="Change" />
+            </div>
+            </form>
+        </div>
+    </div>
+  </div>
+  <div class="content-block">
+    <h2>Try it out!</h2>
+    <form id="completionForm" method="post" action="{{ url_for('try_completion_api') }}" >
+      <div class="field-group">
+        <label>Prompt (no history):</label>
+        <textarea id="prompt" name="prompt"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Last response:</label>
+        <textarea id="completion" name="completion" disabled=true>{{ content['completion'] }}</textarea>
+      </div>
+      <input type="submit" value="Complete" />
+
+    </form>
+  </div>
+
+  <script>
+    function handleAjaxSubmitEvent(formElement, event, respHandler) {
+        event.preventDefault(); // Prevent the default form submission
+
+        const formData = new FormData(formElement);
+        const jsonData = {};
+        formData.forEach((value, key) => { jsonData[key] = value; });
+
+        console.log('Submitting form data:', jsonData);
+        fetch(formElement.action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(jsonData),
+        })
+        .then(response => response.json()) // Assuming the server responds with JSON
+        .then(data => respHandler(data))
+        .catch(error => console.error('Error:', error));
+    }
+
+    document.getElementById('completionForm').addEventListener('submit', function(event) {
+        console.log('Form submitted');
+    
+        handleAjaxSubmitEvent(this, event, data => {
+            console.log('Received response:', data);
+            // Assuming 'data' contains the response to be displayed in the 'completion' textarea
+            document.getElementById('completion').value = data.completion;
+        });
+    });
+
+    document.getElementById('llmModelForm').addEventListener('submit', function(event) {
+        console.log('Form submitted');
+    
+        handleAjaxSubmitEvent(this, event, data => {
+            console.log('Received response:', data);
+            // Just reload the page for now
+            window.location.reload();
+        });
+    });
+
+    </script>
+{% endblock %}

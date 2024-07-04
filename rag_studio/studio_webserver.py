@@ -3,7 +3,7 @@ import json
 import os
 import sys
 from dotenv import dotenv_values
-from flask import Flask, jsonify, request, redirect
+from flask import Flask, jsonify, render_template, request, redirect
 from flask_cors import CORS
 from rag_studio.model_builder import ModelBuilder
 from rag_studio.ragstore import RagStore
@@ -132,52 +132,66 @@ def create_app(config=None, model_builder=None):
     @app.route("/healthcheck")
     def healthcheck_api():
         """Healthcheck API to check if the API is running."""
-        return jsonify(
-            {
-                "message": "API is running!",
-                "start_time": startTime.strftime("%Y-%m-%d %H:%M:%S"),
-            }
-        )
+        return {
+            "message": "API is running!",
+            "start_time": startTime.strftime("%Y-%m-%d %H:%M:%S"),
+        }
 
     @app.route("/repo_name")
     def get_repo_name():
-        return jsonify({"repo_name": repo_name})
+        return {"repo_name": repo_name}
 
-    @app.route("/upload", methods=["POST"])
-    def upload_file_api():
+    def handle_file_upload():
         if "file" not in request.files:
-            return jsonify({"message": "No file part in the request"}), 400
+            return "No file part in the request"
         file = request.files["file"]
         if file.filename == "":
-            return jsonify({"message": "No file selected for uploading"}), 400
+            return "No file selected for uploading"
         if file:
             write_path = f"{doc_storage_path}/{file.filename}"
             logger.info("Uploading file %s to %s", file.filename, write_path)
             file.save(write_path)
             rag_storage.add_document(write_path)
-            return jsonify({"message": "File uploaded successfully"}), 200
+
+    @app.route("/upload", methods=["POST"])
+    def upload_file_api():
+        err_msg = handle_file_upload()
+        if err_msg:
+            return {"message": err_msg}, 400
+        return {"message": "File uploaded successfully"}
+
+    @app.route("/upload-view", methods=["POST"])
+    def upload_file_view():
+        err_msg = handle_file_upload()
+        if err_msg:
+            return err_msg, 400
+
+        return redirect("/")
 
     @app.route("/files")
     def list_files_api():
-        return jsonify({"files": rag_storage.list_files()})
+        return {"files": rag_storage.list_files()}
 
     @app.route("/trycompletion", methods=["POST"])
     def try_completion_api():
-        response = rag_storage.make_query_engine(llm=_engine["llm"]).query(
-            request.json["prompt"]
-        )
+        prompt = request.json["prompt"]
+        response = complete_prompt(prompt)
+        return {"completion": response.response}
+
+    def complete_prompt(prompt):
+        response = rag_storage.make_query_engine(llm=_engine["llm"]).query(prompt)
         logger.debug("Response from query engine: %s", response)
-        return jsonify({"completion": response.response})
+        return response
 
     @app.route("/checkpoint", methods=["POST"])
     def checkpoint_api():
         rag_storage.write_to_storage()
         upload_folder(repo_name, rag_storage.storage_path)
-        return jsonify({"message": "Checkpoint OK"})
+        return {"message": "Checkpoint OK"}
 
     @app.route("/inference-container-details", methods=["POST"])
     def inference_container_details_api():
-        return jsonify({"message": "Inference container details"})
+        return {"message": "Inference container details"}
 
     @app.route(
         "/last-checkpoint",
@@ -185,8 +199,8 @@ def create_app(config=None, model_builder=None):
     def last_checkpoint_api():
         last_commit = get_last_commit(repo_name)
         if last_commit is None:
-            return jsonify({"latest_change_time": None})
-        return jsonify({"latest_change_time": last_commit.created_at})
+            return {"latest_change_time": None}
+        return {"latest_change_time": last_commit.created_at}
 
     @app.post("/model")
     def update_model():
@@ -201,10 +215,28 @@ def create_app(config=None, model_builder=None):
         upload_folder(repo_name, config["rag_storage_path"])
 
         _engine["llm"] = model_builder.make_llm(request.json["model_name"])
-        return jsonify({"message": "Model updated"})
+        return {"message": "Model updated"}
 
     @app.route("/model-name")
     def get_model_name():
-        return jsonify({"model_name": settings["model"]})
+        return {"model_name": settings["model"]}
+
+    @app.post("/complete")
+    def try_completion_view():
+        prompt = request.form["prompt"]
+        response = complete_prompt(prompt)
+        return f"<div>{response}</div>"
+
+    @app.route("/")
+    def home():
+        content = {
+            "llm_model": settings["model"],
+            "repo_name": repo_name,
+            "files": list_files_api()["files"],
+            "embed_model": DEFAULT_EMBEDDING_MODEL,
+            "completion": "",
+            "last_checkpoint": last_checkpoint_api()["latest_change_time"],
+        }
+        return render_template("main.html", content=content)
 
     return app
