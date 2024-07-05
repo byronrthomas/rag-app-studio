@@ -16,6 +16,7 @@ from llama_index.core.prompts.default_prompts import (
     DEFAULT_REFINE_PROMPT_TMPL,
     DEFAULT_TEXT_QA_PROMPT_TMPL,
 )
+from llama_index.core.base.llms.types import ChatMessage
 import gc
 
 
@@ -227,9 +228,11 @@ def create_app(config=None, model_builder=None):
         return {"completion": response.response}
 
     def complete_chat(messages):
+        new_message = messages[-1]
+        history = [ChatMessage(**m) for m in messages[:-1]]
         response = rag_storage.make_chat_engine(
             llm=_engine["llm"], chat_prompts=chat_prompts_from_settings(settings)
-        ).chat(messages)
+        ).chat(new_message["content"], chat_history=history)
         logger.debug("Response from chat engine: %s", response)
         return response
 
@@ -237,7 +240,7 @@ def create_app(config=None, model_builder=None):
     def try_chat_api():
         prompt = request.json["messages"]
         response = complete_chat(prompt)
-        return {"completion": response.response}
+        return {"response": str(response)}
 
     @app.route("/inference-container-details", methods=["POST"])
     def inference_container_details_api():
