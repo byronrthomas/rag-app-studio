@@ -8,6 +8,11 @@ from fastapi import FastAPI, HTTPException
 
 
 # from flask_cors import CORS
+from rag_studio.model_settings import (
+    chat_prompts_from_settings,
+    query_prompts_from_settings,
+    read_settings,
+)
 from rag_studio.ragstore import RagStore
 from rag_studio.hf_repo_storage import get_last_commit, download_from_repo
 import logging
@@ -41,61 +46,6 @@ def make_embed_model(model_name, cache_folder):
         model_name=model_name,
         cache_folder=cache_folder,
     )
-
-
-# def from_env_or_config(env_var, config, default=None):
-#     """Get the value from the environment variable or the config."""
-#     return os.environ.get(env_var, config.get(env_var)) or default
-
-
-# def set_model_params_from_request(llm: Vllm, data):
-#     """Set the model parameters from the request data."""
-#     # temperature: float = 1.0,
-#     # n: int = 1,
-#     # presence_penalty: float = 0.0,
-#     # frequency_penalty: float = 0.0,
-#     # top_p: float = 1.0,
-#     # stop: Optional[List[str]] = None,
-#     # max_tokens ->    # max_new_tokens: int = 512,
-#     # logprobs: Optional[int] = None,
-#     logger.info(
-#         "Setting model params from request data: %s",
-#         {k: v for k, v in data.items() if k not in {"messages", "prompt"}},
-#     )
-#     if "temperature" in data:
-#         llm.temperature = data["temperature"]
-#     if "n" in data and data["n"] != 1:
-#         logger.error("Currently returning n > 1 completions is unsupported")
-#         # llm.n = data["n"]
-#         return "Currently returning n > 1 completions is unsupported"
-#     if "presence_penalty" in data:
-#         llm.presence_penalty = data["presence_penalty"]
-#     if "frequency_penalty" in data:
-#         llm.frequency_penalty = data["frequency_penalty"]
-#     if "top_p" in data:
-#         llm.top_p = data["top_p"]
-#     if "stop" in data:
-#         llm.stop = data["stop"]
-#     if "max_tokens" in data:
-#         llm.max_new_tokens = data["max_tokens"]
-#     if "logprobs" in data:
-#         # llm.logprobs = data["logprobs"]
-#         logger.error("Currently logprobs output is unsupported")
-#         return "Currently logprobs output is unsupported"
-#     if (
-#         "tools" in data
-#         or "tool_choice" in data
-#         or "functions" in data
-#         or "function_call" in data
-#     ):
-#         logger.error("Currently use of tools / functions is unsupported")
-#         return "Currently use of tools / functions is unsupported"
-#     # Additionally the old completions API supports:
-#     # best_of: Optional[int] = None,
-#     if "best_of" in data:
-#         llm.best_of = data["best_of"]
-
-#     return None
 
 
 def skeleton_openai_chat_response(req_id, completion_response, model_name="rag-chat"):
@@ -229,6 +179,10 @@ rag_storage = RagStore(
         "BAAI/bge-large-en-v1.5", f"{model_download_dir}/.hf-cache"
     ),
 )
+# Read model settings from the downloaded repo
+model_settings_path = f"{rag_storage_path}/model_settings.json"
+settings = read_settings(model_settings_path)
+logger.info("Settings on startup: %s", settings)
 
 
 @app.route("/healthcheck")
@@ -240,13 +194,27 @@ def healthcheck_api():
     }
 
 
-MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.1"
+MODEL_NAME = settings["model"]
 llm = make_llm(
     MODEL_NAME,
     f"{model_download_dir}/vllm-via-llama-models",
 )
-chat_engine = rag_storage.make_chat_engine(llm=llm)
-query_engine = rag_storage.make_query_engine(llm=llm)
+chat_prompts = chat_prompts_from_settings(settings)
+chat_engine = rag_storage.make_chat_engine(llm=llm, chat_prompts=chat_prompts)
+query_prompts = query_prompts_from_settings(settings)
+query_engine = rag_storage.make_query_engine(llm=llm, query_prompts=query_prompts)
+
+
+@app.get("/query-prompts")
+def get_query_prompts():
+    """API to get the query prompts."""
+    return query_prompts
+
+
+@app.get("/chat-prompts")
+def get_chat_prompts():
+    """API to get the chat prompts."""
+    return chat_prompts
 
 
 @app.post("/v1/chat/completions")
