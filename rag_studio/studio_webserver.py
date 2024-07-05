@@ -20,6 +20,8 @@ from llama_index.core.base.llms.types import ChatMessage
 import gc
 
 
+from rag_studio import LOG_FILE_FOLDER
+from rag_studio.log_files import tail_logs
 from rag_studio.model_builder import ModelBuilder
 from rag_studio.ragstore import RagStore
 from rag_studio.hf_repo_storage import (
@@ -300,6 +302,12 @@ def create_app(config=None, model_builder=None):
         settings["query_prompts"] = query_prompts
         push_settings_update(config, settings)
         return {"message": "Query prompts updated"}
+
+    @app.route("/logs")
+    def logs():
+        # The number of lines to return is an optional query param
+        num_lines = request.args.get("num_lines", default=100, type=int)
+        return {"logs": tail_logs(LOG_FILE_FOLDER, num_lines)}
 
     @app.route("/")
     def home():
