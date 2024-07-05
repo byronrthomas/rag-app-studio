@@ -8,14 +8,6 @@ from flask import Flask, render_template, request, redirect
 from flask_cors import CORS
 import logging
 
-from llama_index.core.chat_engine.condense_plus_context import (
-    DEFAULT_CONDENSE_PROMPT_TEMPLATE,
-    DEFAULT_CONTEXT_PROMPT_TEMPLATE,
-)
-from llama_index.core.prompts.default_prompts import (
-    DEFAULT_REFINE_PROMPT_TMPL,
-    DEFAULT_TEXT_QA_PROMPT_TMPL,
-)
 from llama_index.core.base.llms.types import ChatMessage
 import gc
 
@@ -23,6 +15,11 @@ import gc
 from rag_studio import LOG_FILE_FOLDER
 from rag_studio.log_files import tail_logs
 from rag_studio.model_builder import ModelBuilder
+from rag_studio.model_settings import (
+    chat_prompts_from_settings,
+    query_prompts_from_settings,
+    read_settings,
+)
 from rag_studio.ragstore import RagStore
 from rag_studio.hf_repo_storage import (
     download_from_repo,
@@ -76,30 +73,14 @@ def fetch_full_repo(config, repo_name):
     logger.info("Fetching repo %s", repo_name)
     download_from_repo(repo_name, config["rag_storage_path"])
     # Return the JSON settings
-    with open(config["model_settings_path"], "r", encoding="UTF-8") as f:
-        return json.load(f)
+    settings_path = config["model_settings_path"]
+    return read_settings(settings_path)
 
 
 def write_settings(config, settings):
     """Write the settings to the settings file."""
     with open(config["model_settings_path"], "w", encoding="UTF-8") as f:
         json.dump(settings, f)
-
-
-def chat_prompts_from_settings(settings):
-    default_prompts = {
-        "condense_prompt": DEFAULT_CONDENSE_PROMPT_TEMPLATE,
-        "context_prompt": DEFAULT_CONTEXT_PROMPT_TEMPLATE,
-    }
-    return settings.get("chat_prompts", default_prompts)
-
-
-def query_prompts_from_settings(settings):
-    default_prompts = {
-        "text_qa_template": DEFAULT_TEXT_QA_PROMPT_TMPL,
-        "refine_template": DEFAULT_REFINE_PROMPT_TMPL,
-    }
-    return settings.get("query_prompts", default_prompts)
 
 
 def push_to_repo(repo_name, config):
