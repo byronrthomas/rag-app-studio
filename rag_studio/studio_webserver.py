@@ -4,8 +4,21 @@ import os
 import shutil
 import sys
 from dotenv import dotenv_values
-from flask import Flask, jsonify, render_template, request, redirect
+from flask import Flask, render_template, request, redirect
 from flask_cors import CORS
+import logging
+
+from llama_index.core.chat_engine.condense_plus_context import (
+    DEFAULT_CONDENSE_PROMPT_TEMPLATE,
+    DEFAULT_CONTEXT_PROMPT_TEMPLATE,
+)
+from llama_index.core.prompts.default_prompts import (
+    DEFAULT_REFINE_PROMPT_TMPL,
+    DEFAULT_TEXT_QA_PROMPT_TMPL,
+)
+import gc
+
+
 from rag_studio.model_builder import ModelBuilder
 from rag_studio.ragstore import RagStore
 from rag_studio.hf_repo_storage import (
@@ -14,13 +27,6 @@ from rag_studio.hf_repo_storage import (
     get_last_commit,
     upload_folder,
 )
-import logging
-from llama_index.core import PromptTemplate
-from llama_index.core.chat_engine.condense_plus_context import (
-    DEFAULT_CONDENSE_PROMPT_TEMPLATE,
-    DEFAULT_CONTEXT_PROMPT_TEMPLATE,
-)
-import gc
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +89,14 @@ def chat_prompts_from_settings(settings):
         "context_prompt": DEFAULT_CONTEXT_PROMPT_TEMPLATE,
     }
     return settings.get("chat_prompts", default_prompts)
+
+
+def query_prompts_from_settings(settings):
+    default_prompts = {
+        "text_qa_template": DEFAULT_TEXT_QA_PROMPT_TMPL,
+        "refine_template": DEFAULT_REFINE_PROMPT_TMPL,
+    }
+    return settings.get("query_prompts", default_prompts)
 
 
 def push_to_repo(repo_name, config):
@@ -200,7 +214,9 @@ def create_app(config=None, model_builder=None):
         return {"files": rag_storage.list_files()}
 
     def complete_prompt(prompt):
-        response = rag_storage.make_query_engine(llm=_engine["llm"]).query(prompt)
+        response = rag_storage.make_query_engine(
+            llm=_engine["llm"], query_prompts=query_prompts_from_settings(settings)
+        ).query(prompt)
         logger.debug("Response from query engine: %s", response)
         return response
 
@@ -273,28 +289,14 @@ def create_app(config=None, model_builder=None):
 
     @app.route("/query-prompts")
     def query_prompts():
-        prompts = rag_storage.make_query_engine(llm=_engine["llm"]).get_prompts()
-        logger.info("Query prompts: %s", prompts)
-        res = {k: v.default_template.template for k, v in prompts.items()}
-        return res
+        return query_prompts_from_settings(settings)
 
-    @app.post("/update-prompt")
-    def update_prompt():
-        qa_prompt_tmpl_str = (
-            "Context information is below.\n"
-            "---------------------\n"
-            "{context_str}\n"
-            "---------------------\n"
-            "Given the context information and not prior knowledge, "
-            "answer the query in the style of a Shakespeare play.\n"
-            "Query: {query_str}\n"
-            "Answer: "
-        )
-        qa_prompt_tmpl = PromptTemplate(qa_prompt_tmpl_str)
-        prompts = {"response_synthesizer:text_qa_template": qa_prompt_tmpl}
-
-        rag_storage.make_query_engine(llm=_engine["llm"]).update_prompts(prompts)
-        return {"message": "Prompt updated"}
+    @app.post("/update-query-prompts")
+    def update_query_prompts():
+        query_prompts = request.json
+        settings["query_prompts"] = query_prompts
+        push_settings_update(config, settings)
+        return {"message": "Query prompts updated"}
 
     @app.route("/")
     def home():

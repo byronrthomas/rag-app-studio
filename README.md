@@ -51,3 +51,9 @@ docker build --build-arg BASE_IMAGE_TAG=2.2 -t byronthomas712/trial-container:2.
 ```
 docker run -d -p 5000:5000 --rm --name theta-container-trial byronthomas712/trial-container:0.1 --bind-all
 ```
+
+### Run studio locally without GPU (so chat / queries / etc don't work properly)
+
+```
+flask --app rag_studio.tests.mock_studio_server run --debug --port 8000
+```

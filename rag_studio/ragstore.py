@@ -5,11 +5,13 @@ from llama_index.core import (
     SimpleDirectoryReader,
     Settings,
     StorageContext,
+    PromptTemplate,
     load_index_from_storage,
 )
 from llama_index.core.ingestion import run_transformations
 from llama_index.core.settings import transformations_from_settings_or_context
 from llama_index.core.storage.docstore.types import RefDocInfo
+from llama_index.core.prompts.prompt_type import PromptType
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +55,17 @@ class RagStore:
         logger.info("Persisting index to storage at %s", self.storage_path)
         self.index.storage_context.persist(persist_dir=self.storage_path)
 
-    def make_query_engine(self, llm):
-        return self.index.as_query_engine(llm)
+    def make_query_engine(self, llm, query_prompts):
+        kwargs = {}
+        if query_prompts:
+            kwargs["text_qa_template"] = PromptTemplate(
+                query_prompts["text_qa_template"],
+                prompt_type=PromptType.QUESTION_ANSWER,
+            )
+            kwargs["refine_template"] = PromptTemplate(
+                query_prompts["refine_template"], prompt_type=PromptType.REFINE
+            )
+        return self.index.as_query_engine(llm=llm, **kwargs)
 
     def make_chat_engine(self, llm, chat_prompts):
         kwargs = {}
