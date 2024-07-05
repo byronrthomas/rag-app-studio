@@ -12,4 +12,4 @@ COPY --chown=root:root ./rag_studio/*.py /app/rag_studio/
 
 ENV VLLM_DO_NOT_TRACK=1
 # ENTRYPOINT ["fastapi" "run" "rag_studio/inference_webserver.py"]
-ENTRYPOINT ["bash", "-c", "service ssh start; source ~/.profile && flask --app rag_studio.studio_webserver run --debug --no-reload --host=0.0.0.0"]
+ENTRYPOINT ["bash", "-c", "service ssh start; source ~/.profile && flask --app rag_studio.studio_webserver run --debug --no-reload --host=0.0.0.0 --port=8000"]
