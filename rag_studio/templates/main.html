@@ -43,11 +43,35 @@
                 <input type="text" id="_model_name" name="_model_name" value="{{ content['llm_model'] }}" disabled=true />
             </div>
             <form id="llmModelForm" method="post" action="{{ url_for('update_model') }}" >
-            <div class="field-group">
-                <label>Change the model:</label>
-                <input type="text" id="model_name" name="model_name" placeholder="{{ content['llm_model'] }}"  />
-                <input type="submit" value="Change" />
-            </div>
+                <div class="field-group">
+                    <label>Change the model:</label>
+                    <input type="text" id="model_name" name="model_name" placeholder="{{ content['llm_model'] }}"  />
+                    <input type="submit" value="Change" />
+                </div>
+            </form>
+            <form id="queryTemplateForm" method="post" action="{{ url_for('update_query_prompts') }}" >
+                <h4>Query prompts</h4>
+                <div class="field-group">
+                    <label>Question answering:</label>
+                    <textarea id="text_qa_template" name="text_qa_template">{{ content['query_prompts']['text_qa_template'] }}</textarea>
+                </div>  
+                <div class="field-group">
+                    <label>Use more context to refine:</label>
+                    <textarea id="refine_template" name="refine_template">{{ content['query_prompts']['refine_template'] }}</textarea>
+                </div>
+                <input type="submit" value="Update query prompts" />
+            </form>
+            <form id="chatTemplateForm" method="post" action="{{ url_for('update_chat_prompts') }}" >
+                <h4>Chat prompts</h4>
+                <div class="field-group">
+                    <label>Complete next chat:</label>
+                    <textarea id="context_prompt" name="context_prompt">{{ content['chat_prompts']['context_prompt'] }}</textarea>
+                </div>  
+                <div class="field-group">
+                    <label>Build a question based on history & context</label>
+                    <textarea id="condense_prompt" name="condense_prompt">{{ content['chat_prompts']['condense_prompt'] }}</textarea>
+                </div>
+                <input type="submit" value="Update chat prompts" />
             </form>
         </div>
     </div>
@@ -102,6 +126,26 @@
     });
 
     document.getElementById('llmModelForm').addEventListener('submit', function(event) {
+        console.log('Form submitted');
+    
+        handleAjaxSubmitEvent(this, event, data => {
+            console.log('Received response:', data);
+            // Just reload the page for now
+            window.location.reload();
+        });
+    });
+
+    document.getElementById('queryTemplateForm').addEventListener('submit', function(event) {
+        console.log('Form submitted');
+    
+        handleAjaxSubmitEvent(this, event, data => {
+            console.log('Received response:', data);
+            // Just reload the page for now
+            window.location.reload();
+        });
+    });
+
+    document.getElementById('chatTemplateForm').addEventListener('submit', function(event) {
         console.log('Form submitted');
     
         handleAjaxSubmitEvent(this, event, data => {

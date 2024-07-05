@@ -308,7 +308,7 @@ def create_app(config=None, model_builder=None):
             "completion": "",
             "last_checkpoint": last_checkpoint_api()["latest_change_time"],
             "chat_prompts": chat_prompts(),
-            # "query_prompts": query_prompts(),
+            "query_prompts": query_prompts(),
         }
         return render_template("main.html", content=content)
 
