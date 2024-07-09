@@ -9,7 +9,9 @@ WORKDIR /app
 
 # Copy all Python files from the build context, excluding those in the 'tests' directory
 COPY --chown=root:root ./rag_studio/*.py /app/rag_studio/
+# Also copy the static and templates for webserver
+COPY --chown=root:root ./rag_studio/static/* /app/rag_studio/static/
+COPY --chown=root:root ./rag_studio/templates/* /app/rag_studio/templates/
 
 ENV VLLM_DO_NOT_TRACK=1
-# ENTRYPOINT ["fastapi" "run" "rag_studio/inference_webserver.py"]
 ENTRYPOINT ["bash", "-c", "service ssh start; source ~/.profile && flask --app rag_studio.studio_webserver run --debug --no-reload --host=0.0.0.0 --port=8000"]
