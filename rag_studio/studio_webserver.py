@@ -117,6 +117,20 @@ def init_settings(config, repo_name):
     return fetch_full_repo(config, repo_name)
 
 
+def response_to_transport(response):
+    return {
+        "completion": response.response,
+        "contexts": [
+            {
+                "context:": sn.text,
+                "score": sn.score,
+                "filename": sn.metadata.get("file_name"),
+            }
+            for sn in response.source_nodes
+        ],
+    }
+
+
 def create_app(config=None, model_builder=None):
     """Create the main Flask app with the given config."""
     config = apply_defaults(config or {}, dotenv_values(".env"))
@@ -208,7 +222,7 @@ def create_app(config=None, model_builder=None):
     def try_completion_api():
         prompt = request.json["prompt"]
         response = complete_prompt(prompt)
-        return {"completion": response.response}
+        return response_to_transport(response)
 
     def complete_chat(messages):
         new_message = messages[-1]
@@ -223,7 +237,7 @@ def create_app(config=None, model_builder=None):
     def try_chat_api():
         prompt = request.json["messages"]
         response = complete_chat(prompt)
-        return {"response": str(response)}
+        return response_to_transport(response)
 
     @app.route("/inference-container-details", methods=["POST"])
     def inference_container_details_api():
