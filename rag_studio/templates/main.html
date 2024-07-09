@@ -89,6 +89,9 @@
             <textarea id="completion" name="completion" disabled=true>{{ content['completion'] }}</textarea>
         </div>
         <input type="submit" value="Answer query" />
+        <h4>Retrieved texts for last query:</h4>
+        <div id="queryContexts">
+        </div>
 
         </form>
     </div> 
@@ -104,8 +107,11 @@
                     <label>user</label>
                     <textarea id="msg-1">....</textarea>
                 </div>
-            </div>            
+            </div>
             <input type="submit" value="Respond to chat" />
+            <h4>Retrieved texts for last query:</h4>
+            <div id="chatContexts">
+            </div>            
 
         </form>
     </div> 
@@ -139,6 +145,20 @@
             console.log('Received response:', data);
             // Assuming 'data' contains the response to be displayed in the 'completion' textarea
             document.getElementById('completion').value = data.completion;
+            // Update the query contexts
+            const queryContexts = document.getElementById('queryContexts');
+            queryContexts.innerHTML = '';
+            data.contexts.forEach(context => {
+                console.log('Context:', context);
+                const newDiv = document.createElement('div');
+                const scoreP = document.createElement('p');
+                scoreP.textContent = `Score: ${context["score"]} -- File: ${context["filename"]}`;
+                newDiv.appendChild(scoreP);
+                const contextP = document.createElement('p');
+                contextP.textContent = context["context"];
+                newDiv.appendChild(contextP);
+                queryContexts.appendChild(newDiv);
+            });
         });
     });
 
@@ -172,7 +192,7 @@
             const newLabel = document.createElement('label');
             newLabel.textContent = 'assistant';
             const newTextarea = document.createElement('textarea');
-            newTextarea.value = data['response'];
+            newTextarea.value = data['completion'];
 
             newDiv.appendChild(newLabel);
             newDiv.appendChild(newTextarea);
@@ -188,6 +208,21 @@
             userDiv.appendChild(userLabel);
             userDiv.appendChild(userTextarea);
             containerElement.appendChild(userDiv);
+
+            // Now update the chat contexts
+            const chatContexts = document.getElementById('chatContexts');
+            chatContexts.innerHTML = '';
+            data['contexts'].forEach(context => {
+                console.log('Context:', context);
+                const newDiv = document.createElement('div');
+                const scoreP = document.createElement('p');
+                scoreP.textContent = `Score: ${context["score"]} -- File: ${context["filename"]}`;
+                newDiv.appendChild(scoreP);
+                const contextP = document.createElement('p');
+                contextP.textContent = context["context"];
+                newDiv.appendChild(contextP);
+                chatContexts.appendChild(newDiv);
+            });
             
         })
         .catch(error => console.error('Error:', error));
