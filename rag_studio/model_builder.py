@@ -1,6 +1,33 @@
+import gc
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def calculate_max_content_window(model_name, download_dir):
+    from vllm.engine.arg_utils import EngineArgs
+    from vllm.executor.gpu_executor import GPUExecutor
+
+    engine_args = EngineArgs(
+        model=model_name,
+        dtype="float16",
+        download_dir=download_dir,
+    )
+    engine_config = engine_args.create_engine_config()
+    ec1_dict = engine_config.to_dict()
+    exec1 = GPUExecutor(
+        model_config=ec1_dict["model_config"],
+        cache_config=ec1_dict["cache_config"],
+        parallel_config=ec1_dict["parallel_config"],
+        scheduler_config=ec1_dict["scheduler_config"],
+        device_config=ec1_dict["device_config"],
+        lora_config=ec1_dict["lora_config"],
+        vision_language_config=ec1_dict["vision_language_config"],
+        speculative_config=ec1_dict["speculative_config"],
+        load_config=ec1_dict["load_config"],
+    )
+    gpu_blocks, _ = exec1.determine_num_available_blocks()
+    return gpu_blocks * ec1_dict["cache_config"].block_size
 
 
 class ModelBuilder:
@@ -33,15 +60,27 @@ class ModelBuilder:
 
         max_possible_model_len = self.derive_max_possible_model_len(llm_model)
         logger.info("Max possible model length: %d", max_possible_model_len)
-        # Calculate number of available GPUs
+
+        max_possible_content_window = calculate_max_content_window(
+            llm_model, self.vllm_models_folder()
+        )
+        logger.info(
+            "Max possible content window (based on available GPU cache): %d",
+            max_possible_content_window,
+        )
+        # Need to clear the cache to avoid OOM errors
+        gc.collect()
+        max_model_len = min(max_possible_model_len, max_possible_content_window)
+        logger.info("Choosing max model length: %d", max_model_len)
 
         return Vllm(
             model=llm_model,
             download_dir=self.vllm_models_folder(),
             dtype="float16",
+            # Calculate number of available GPUs
             tensor_parallel_size=torch.cuda.device_count(),
             vllm_kwargs={
-                "max_model_len": min(max_possible_model_len, 30000),
+                "max_model_len": max_model_len,
             },
         )
 
