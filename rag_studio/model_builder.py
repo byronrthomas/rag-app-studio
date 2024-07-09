@@ -1,20 +1,61 @@
 import gc
 import logging
+import torch
+from vllm.engine.arg_utils import EngineArgs
 
 logger = logging.getLogger(__name__)
 
 
-def calculate_max_content_window(model_name, download_dir):
-    from vllm.engine.arg_utils import EngineArgs
+def get_desired_dtype(model_name, download_dir):
+    eadict = (
+        EngineArgs(
+            model="mistralai/Mistral-7B-Instruct-v0.1",
+            download_dir="/workspace/models/vllm-via-llama-models",
+        )
+        .create_engine_config()
+        .to_dict()
+    )
+    return eadict["model_config"].dtype
+
+
+def infer_dtype_to_use(model_name, download_dir):
+    desired_dtype = get_desired_dtype(model_name, download_dir)
+
+    # Check if the GPU supports the dtype
+    if desired_dtype == torch.bfloat16:
+        compute_capability = torch.cuda.get_device_properties(0)
+        if compute_capability.major < 8:
+            logger.warning(
+                "The model requires bfloat16, but the GPU does not support it. Falling back to float16."
+            )
+            return "float16"
+
+    torch_dtype_names = {
+        torch.float16: "float16",
+        torch.float32: "float32",
+        torch.float64: "float64",
+        torch.bfloat16: "bfloat16",
+    }
+    if desired_dtype not in torch_dtype_names:
+        raise ValueError(f"Unknown dtype: {desired_dtype}")
+    logger.info(
+        "No compatibility issues with the desired dtype - using %s",
+        torch_dtype_names[desired_dtype],
+    )
+    return torch_dtype_names[desired_dtype]
+
+
+def calculate_max_content_window(model_name, download_dir, inferred_dtype):
     from vllm.executor.gpu_executor import GPUExecutor
 
     engine_args = EngineArgs(
         model=model_name,
-        dtype="float16",
+        dtype=inferred_dtype,
         download_dir=download_dir,
     )
     engine_config = engine_args.create_engine_config()
     ec1_dict = engine_config.to_dict()
+
     exec1 = GPUExecutor(
         model_config=ec1_dict["model_config"],
         cache_config=ec1_dict["cache_config"],
@@ -58,11 +99,12 @@ class ModelBuilder:
         from llama_index.llms.vllm import Vllm
         import torch
 
+        inferred_dtype = infer_dtype_to_use(llm_model, self.vllm_models_folder())
         max_possible_model_len = self.derive_max_possible_model_len(llm_model)
         logger.info("Max possible model length: %d", max_possible_model_len)
 
         max_possible_content_window = calculate_max_content_window(
-            llm_model, self.vllm_models_folder()
+            llm_model, self.vllm_models_folder(), inferred_dtype
         )
         logger.info(
             "Max possible content window (based on available GPU cache): %d",
@@ -76,7 +118,7 @@ class ModelBuilder:
         return Vllm(
             model=llm_model,
             download_dir=self.vllm_models_folder(),
-            dtype="float16",
+            dtype=inferred_dtype,
             # Calculate number of available GPUs
             tensor_parallel_size=torch.cuda.device_count(),
             vllm_kwargs={
