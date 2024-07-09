@@ -122,7 +122,7 @@ def response_to_transport(response):
         "completion": response.response,
         "contexts": [
             {
-                "context:": sn.text,
+                "context": sn.text,
                 "score": sn.score,
                 "filename": sn.metadata.get("file_name"),
             }
