@@ -1,29 +1,11 @@
 import json
 import os
-import secrets
-import shutil
-from unittest.mock import MagicMock
 import pytest
 
 from rag_studio.hf_repo_storage import download_from_repo, get_last_commit, list_files
 from rag_studio.tests.conftest import TEST_INITIAL_MODEL, TEST_REPO_NAME
 from rag_studio.tests.test_utils import cleanup_temp_folder, make_temp_folder
-from rag_studio.studio_webserver import apply_defaults, create_app, DEFAULT_LLM_MODEL
-import rag_studio.studio_webserver as ws
-
-
-@pytest.fixture(name="mock_models")
-def mock_model_builder():
-    return MagicMock()
-
-
-@pytest.fixture(name="nogpu_client_factory")
-def client_factory_fixture(mock_models, test_config):
-    def create_client(config=test_config):
-        app = create_app(config=config, model_builder=mock_models)
-        return app.test_client()
-
-    return create_client
+from rag_studio.studio_webserver import apply_defaults, DEFAULT_LLM_MODEL
 
 
 @pytest.mark.createsRepo

@@ -1,14 +1,15 @@
 import pytest
 import shutil
 import os
-from rag_studio.model_builder import ModelBuilder
+import logging
+from unittest.mock import MagicMock
+from huggingface_hub import HfApi
 from rag_studio.tests.test_utils import make_temp_folder
 from rag_studio.studio_webserver import create_app, apply_defaults
-import logging
-from huggingface_hub import HfApi
 
 logger = logging.getLogger(__name__)
 
+TEST_PREFS_REPO = "test-rag-studio-prefs"
 TEST_REPO_NAME = "test-rag-studio-repo-1"
 TEST_INITIAL_MODEL = "test-llm-model-1"
 api = HfApi()
@@ -22,11 +23,24 @@ def push_initial_model_settings(repo_full_id):
     api.upload_folder(repo_id=repo_full_id, folder_path=temp_folder)
 
 
+def push_initial_repo_prefs(repo_full_id, rag_repo_id):
+    temp_folder = make_temp_folder()
+
+    with open(f"{temp_folder}/preferences.json", "w", encoding="UTF-8") as f:
+        if rag_repo_id is None:
+            f.write("{}")
+        else:
+            f.write('{"active_repo_id": "' + rag_repo_id + '"}')
+    api.upload_folder(repo_id=repo_full_id, folder_path=temp_folder)
+
+
 @pytest.fixture(name="test_config")
 def test_config_fixture():
     test_config = {
         "TESTING": True,
         "RAG_STORAGE_PATH": "/tmp/rag_storage",
+        # Ensure we keep tests isolated from other HF repos
+        "__TEST_PREFS_REPO_ID__": TEST_PREFS_REPO,
     }
     # Ensure storage path cleared out before each test
     if os.path.exists(test_config["RAG_STORAGE_PATH"]):
@@ -66,3 +80,17 @@ def client_fixture(app):
 @pytest.fixture(name="runner")
 def runner_fixture(app):
     return app.test_cli_runner()
+
+
+@pytest.fixture(name="mock_models")
+def mock_model_builder():
+    return MagicMock()
+
+
+@pytest.fixture(name="nogpu_client_factory")
+def client_factory_fixture(mock_models, test_config):
+    def create_client(config=test_config):
+        app = create_app(config=config, model_builder=mock_models)
+        return app.test_client()
+
+    return create_client

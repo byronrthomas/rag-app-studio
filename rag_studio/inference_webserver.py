@@ -30,23 +30,6 @@ from rag_studio.openai.schema import ChatCompletionRequest, CompletionRequest
 logger = logging.getLogger(__name__)
 
 
-def make_llm(llm_model, download_dir):
-    """Initialise the LLM model with the given config."""
-    return Vllm(
-        model=llm_model,
-        download_dir=download_dir,
-        vllm_kwargs={"max_model_len": 30000},
-    )
-
-
-def make_embed_model(model_name, cache_folder):
-    """Initialise the embedding model with the given config."""
-    return HuggingFaceEmbedding(
-        model_name=model_name,
-        cache_folder=cache_folder,
-    )
-
-
 def skeleton_openai_chat_response(req_id, completion_response, model_name="rag-chat"):
     """Construct a response that's representative of OpenAI format responses,
     even though we don't have most of the data that would be needed to construct it.

@@ -19,6 +19,10 @@ def make_repo_name():
     return f"rag-studio-{random_hex}"
 
 
+def repo_exists(repo_name):
+    return api.repo_exists(repo_id=api.get_full_repo_name(repo_name))
+
+
 def init_repo(existing_repo_name):
     """Initialise the repo, by choosing a new unique name if one is not provided.
     If the repo name is passed, it will be assumed to exist already."""
