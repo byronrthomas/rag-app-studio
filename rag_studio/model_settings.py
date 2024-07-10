@@ -8,6 +8,9 @@ from llama_index.core.prompts.default_prompts import (
     DEFAULT_TEXT_QA_PROMPT_TMPL,
 )
 
+DEFAULT_LLM_MODEL = "mistralai/Mistral-7B-Instruct-v0.1"
+DEFAULT_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
+
 
 def query_prompts_from_settings(settings):
     default_prompts = {

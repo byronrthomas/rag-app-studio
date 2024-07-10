@@ -16,6 +16,8 @@ from rag_studio import LOG_FILE_FOLDER
 from rag_studio.log_files import tail_logs
 from rag_studio.model_builder import ModelBuilder
 from rag_studio.model_settings import (
+    DEFAULT_EMBEDDING_MODEL,
+    DEFAULT_LLM_MODEL,
     chat_prompts_from_settings,
     query_prompts_from_settings,
     read_settings,
@@ -29,9 +31,6 @@ from rag_studio.hf_repo_storage import (
 )
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_LLM_MODEL = "mistralai/Mistral-7B-Instruct-v0.1"
-DEFAULT_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
 
 
 def apply_defaults(config_in, from_dot_env=None):

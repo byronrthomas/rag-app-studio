@@ -19,6 +19,7 @@ from llama_index.core.schema import BaseComponent
 # from flask_cors import CORS
 from rag_studio.model_builder import ModelBuilder
 from rag_studio.model_settings import (
+    DEFAULT_EMBEDDING_MODEL,
     chat_prompts_from_settings,
     query_prompts_from_settings,
     read_settings,
@@ -159,7 +160,7 @@ model_builder = ModelBuilder(model_download_dir)
 download_from_repo(rag_repo_id, rag_storage_path)
 rag_storage = RagStore(
     rag_storage_path,
-    embed_model=model_builder.make_embedding_model("BAAI/bge-large-en-v1.5"),
+    embed_model=model_builder.make_embedding_model(DEFAULT_EMBEDDING_MODEL),
 )
 # Read model settings from the downloaded repo
 model_settings_path = f"{rag_storage_path}/model_settings.json"
