@@ -1,12 +1,12 @@
 import gc
 import logging
-import torch
-from vllm.engine.arg_utils import EngineArgs
 
 logger = logging.getLogger(__name__)
 
 
 def get_desired_dtype(model_name, download_dir):
+    from vllm.engine.arg_utils import EngineArgs
+
     eadict = (
         EngineArgs(
             model="mistralai/Mistral-7B-Instruct-v0.1",
@@ -19,6 +19,8 @@ def get_desired_dtype(model_name, download_dir):
 
 
 def infer_dtype_to_use(model_name, download_dir):
+    import torch
+
     desired_dtype = get_desired_dtype(model_name, download_dir)
 
     # Check if the GPU supports the dtype
@@ -46,7 +48,8 @@ def infer_dtype_to_use(model_name, download_dir):
 
 
 def calculate_max_content_window(model_name, download_dir, inferred_dtype):
-    from vllm.executor.gpu_executor import GPUExecutor
+    from vllm.engine.arg_utils import EngineArgs
+    import torch
 
     engine_args = EngineArgs(
         model=model_name,

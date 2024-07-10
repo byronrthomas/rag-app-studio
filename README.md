@@ -65,3 +65,9 @@ docker run -d -p 5000:5000 --rm --name theta-container-trial byronthomas712/tria
 ```
 flask --app rag_studio.tests.mock_studio_server run --debug --port 8000
 ```
+
+### Run tests locally that don't need a GPU
+
+```
+DISABLE_FILE_LOGGING=1 pytest -m "not needsGpu" -o log_cli=true -o log_cli_level=INFO
+```

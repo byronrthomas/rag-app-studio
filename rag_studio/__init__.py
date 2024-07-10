@@ -15,21 +15,26 @@ root_logger.setLevel(log_level)
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(log_level)
 
-# Create rotating file handler
-# Adjust 'maxBytes' and 'backupCount' to your needs
-LOG_FILE_FOLDER = "/var/log/rag_studio"
-if not os.path.exists(LOG_FILE_FOLDER):
-    os.makedirs(LOG_FILE_FOLDER)
-file_handler = RotatingFileHandler(
-    LOG_FILE_FOLDER + "/application.log", maxBytes=1048576, backupCount=5
-)
-file_handler.setLevel(log_level)
-
 # Create formatter and add it to the handlers
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 console_handler.setFormatter(formatter)
-file_handler.setFormatter(formatter)
 
 # Add handlers to the root logger
 root_logger.addHandler(console_handler)
-root_logger.addHandler(file_handler)
+
+LOG_FILE_FOLDER = "/var/log/rag_studio"
+if os.environ.get("DISABLE_FILE_LOGGING") != "1":
+    # Create rotating file handler
+    # Adjust 'maxBytes' and 'backupCount' to your needs
+    if not os.path.exists(LOG_FILE_FOLDER):
+        os.makedirs(LOG_FILE_FOLDER)
+    file_handler = RotatingFileHandler(
+        LOG_FILE_FOLDER + "/application.log", maxBytes=1048576, backupCount=5
+    )
+    file_handler.setLevel(log_level)
+
+    # Add formatter
+    file_handler.setFormatter(formatter)
+
+    # Add file handler to the root logger
+    root_logger.addHandler(file_handler)
