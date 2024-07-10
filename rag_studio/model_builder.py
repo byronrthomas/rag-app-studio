@@ -47,6 +47,18 @@ def infer_dtype_to_use(model_name, download_dir):
     return torch_dtype_names[desired_dtype]
 
 
+def free_gpu_memory():
+    import torch
+
+    gc.collect()
+
+    # Free the memory
+    torch.cuda.empty_cache()
+    torch.cuda.reset_max_memory_allocated()
+
+    logger.info("GPU memory has been freed.")
+
+
 def calculate_max_content_window(model_name, download_dir, inferred_dtype):
     from vllm.engine.arg_utils import EngineArgs
     import torch
@@ -55,11 +67,32 @@ def calculate_max_content_window(model_name, download_dir, inferred_dtype):
         model=model_name,
         dtype=inferred_dtype,
         download_dir=download_dir,
+        tensor_parallel_size=torch.cuda.device_count(),
     )
     engine_config = engine_args.create_engine_config()
+    distributed_executor_backend = (
+        engine_config.parallel_config.distributed_executor_backend
+    )
+    executor_class = None
+    if distributed_executor_backend == "ray":
+        from vllm.executor.ray_utils import initialize_ray_cluster
+
+        initialize_ray_cluster(engine_config.parallel_config)
+        from vllm.executor.ray_gpu_executor import RayGPUExecutor
+
+        executor_class = RayGPUExecutor
+    elif distributed_executor_backend == "mp":
+        from vllm.executor.multiproc_gpu_executor import MultiprocessingGPUExecutor
+
+        executor_class = MultiprocessingGPUExecutor
+    else:
+        from vllm.executor.gpu_executor import GPUExecutor
+
+        executor_class = GPUExecutor
+
     ec1_dict = engine_config.to_dict()
 
-    exec1 = GPUExecutor(
+    exec1 = executor_class(
         model_config=ec1_dict["model_config"],
         cache_config=ec1_dict["cache_config"],
         parallel_config=ec1_dict["parallel_config"],
@@ -71,6 +104,7 @@ def calculate_max_content_window(model_name, download_dir, inferred_dtype):
         load_config=ec1_dict["load_config"],
     )
     gpu_blocks, _ = exec1.determine_num_available_blocks()
+    del exec1
     return gpu_blocks * ec1_dict["cache_config"].block_size
 
 
@@ -91,6 +125,8 @@ class ModelBuilder:
         """Initialise the embedding model with the given config."""
         from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
+        logger.info("Initialising embedding model %s", model_name)
+
         # embedding model
         return HuggingFaceEmbedding(
             model_name=model_name,
@@ -102,10 +138,13 @@ class ModelBuilder:
         from llama_index.llms.vllm import Vllm
         import torch
 
+        logger.info("Initialising LLM model %s", llm_model)
+
         inferred_dtype = infer_dtype_to_use(llm_model, self.vllm_models_folder())
         max_possible_model_len = self.derive_max_possible_model_len(llm_model)
         logger.info("Max possible model length: %d", max_possible_model_len)
 
+        free_gpu_memory()
         max_possible_content_window = calculate_max_content_window(
             llm_model, self.vllm_models_folder(), inferred_dtype
         )
@@ -114,7 +153,7 @@ class ModelBuilder:
             max_possible_content_window,
         )
         # Need to clear the cache to avoid OOM errors
-        gc.collect()
+        free_gpu_memory()
         max_model_len = min(max_possible_model_len, max_possible_content_window)
         logger.info("Choosing max model length: %d", max_model_len)
 
