@@ -9,8 +9,8 @@ def get_desired_dtype(model_name, download_dir):
 
     eadict = (
         EngineArgs(
-            model="mistralai/Mistral-7B-Instruct-v0.1",
-            download_dir="/workspace/models/vllm-via-llama-models",
+            model=model_name,
+            download_dir=download_dir,
         )
         .create_engine_config()
         .to_dict()
