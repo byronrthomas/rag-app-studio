@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Copy all Python files from the build context, excluding those in the 'tests' directory
 COPY --chown=root:root ./rag_studio/*.py /app/rag_studio/
-COPY --chown=root:root ./rag_studio/openai/*.py /app/rag_studio/openai
+COPY --chown=root:root ./rag_studio/openai/*.py /app/rag_studio/openai/
 
 ENV VLLM_DO_NOT_TRACK=1
-ENTRYPOINT ["bash", "-c", "fastapi run rag_studio/inference_webserver.py"]
+ENTRYPOINT ["bash", "-c", "source ~/.profile && fastapi run rag_studio/inference_webserver.py"]
