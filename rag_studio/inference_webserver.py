@@ -3,30 +3,29 @@ import os
 import shutil
 from pathlib import Path
 import sys
+import logging
+import secrets
+
 
 from fastapi import FastAPI, HTTPException
 
-
-# from flask_cors import CORS
-from rag_studio.model_settings import (
-    chat_prompts_from_settings,
-    query_prompts_from_settings,
-    read_settings,
-)
-from rag_studio.ragstore import RagStore
-from rag_studio.hf_repo_storage import get_last_commit, download_from_repo
-import logging
-from llama_index.core import (
-    Settings,
-)
-from rag_studio.openai.schema import ChatCompletionRequest, CompletionRequest
 
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.vllm import Vllm
 
 from llama_index.core.base.llms.types import ChatMessage
 from llama_index.core.schema import BaseComponent
-import secrets
+
+# from flask_cors import CORS
+from rag_studio.model_builder import ModelBuilder
+from rag_studio.model_settings import (
+    chat_prompts_from_settings,
+    query_prompts_from_settings,
+    read_settings,
+)
+from rag_studio.ragstore import RagStore
+from rag_studio.hf_repo_storage import download_from_repo
+from rag_studio.openai.schema import ChatCompletionRequest, CompletionRequest
 
 logger = logging.getLogger(__name__)
 
@@ -172,12 +171,12 @@ if os.path.exists(rag_storage_path):
     # Remove the directory tree at rag_storage_path, even if the dir is not empty
     shutil.rmtree(rag_storage_path)
 
+model_builder = ModelBuilder(model_download_dir)
+
 download_from_repo(rag_repo_id, rag_storage_path)
 rag_storage = RagStore(
     rag_storage_path,
-    embed_model=make_embed_model(
-        "BAAI/bge-large-en-v1.5", f"{model_download_dir}/.hf-cache"
-    ),
+    embed_model=model_builder.make_embedding_model("BAAI/bge-large-en-v1.5"),
 )
 # Read model settings from the downloaded repo
 model_settings_path = f"{rag_storage_path}/model_settings.json"
@@ -195,10 +194,7 @@ def healthcheck_api():
 
 
 MODEL_NAME = settings["model"]
-llm = make_llm(
-    MODEL_NAME,
-    f"{model_download_dir}/vllm-via-llama-models",
-)
+llm = model_builder.make_llm(MODEL_NAME)
 chat_prompts = chat_prompts_from_settings(settings)
 chat_engine = rag_storage.make_chat_engine(llm=llm, chat_prompts=chat_prompts)
 query_prompts = query_prompts_from_settings(settings)
