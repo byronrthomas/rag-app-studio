@@ -29,8 +29,12 @@ def init_repo(existing_repo_name):
     repo_name = existing_repo_name
     if not repo_name:
         repo_name = make_repo_name()
-        api.create_repo(repo_id=repo_name, private=True, exist_ok=False)
+        create_repo(repo_name)
     return repo_name
+
+
+def create_repo(repo_name):
+    api.create_repo(repo_id=repo_name, private=True, exist_ok=False)
 
 
 def upload_folder(repo_name, model_path, path_in_repo=None):

@@ -2,14 +2,27 @@ import json
 import os
 import pytest
 
-from rag_studio.hf_repo_storage import download_from_repo, get_last_commit, list_files
-from rag_studio.tests.conftest import TEST_INITIAL_MODEL, TEST_REPO_NAME
+from rag_studio.hf_repo_storage import (
+    download_from_repo,
+    get_last_commit,
+    list_files,
+    api,
+)
+from rag_studio.model_settings import DEFAULT_LLM_MODEL
+from rag_studio.tests.conftest import (
+    TEST_INITIAL_MODEL,
+    TEST_PREFS_REPO,
+    TEST_REPO_NAME,
+    push_initial_repo_prefs,
+)
 from rag_studio.tests.test_utils import cleanup_temp_folder, make_temp_folder
-from rag_studio.studio_webserver import apply_defaults, DEFAULT_LLM_MODEL
+from rag_studio.studio_webserver import apply_defaults
 
 
 @pytest.mark.createsRepo
 def test_when_launched_without_repo_model_is_initially_default(nogpu_client_factory):
+    # Ensure we will construct a new repo
+    push_initial_repo_prefs(api.get_full_repo_name(TEST_PREFS_REPO), None)
     client = nogpu_client_factory()
     model_result = client.get("/model-name")
     assert model_result.status_code == 200
@@ -48,6 +61,8 @@ def test_when_launched_with_repo_id_set_doesnt_change_repo(
 def test_when_launched_without_repo_id_creates_new_repo_with_config(
     nogpu_client_factory,
 ):
+    # Ensure we will construct a new repo
+    push_initial_repo_prefs(api.get_full_repo_name(TEST_PREFS_REPO), None)
     client = nogpu_client_factory()
     repo_result = client.get("/repo_name")
     assert repo_result.status_code == 200

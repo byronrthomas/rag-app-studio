@@ -13,6 +13,7 @@ import gc
 
 
 from rag_studio import LOG_FILE_FOLDER
+from rag_studio.inference.repo_handling import infer_prefs_repo_id
 from rag_studio.log_files import tail_logs
 from rag_studio.model_builder import ModelBuilder
 from rag_studio.model_settings import (
@@ -24,9 +25,12 @@ from rag_studio.model_settings import (
 )
 from rag_studio.ragstore import RagStore
 from rag_studio.hf_repo_storage import (
+    create_repo,
+    download_file,
     download_from_repo,
     init_repo,
     get_last_commit,
+    repo_exists,
     upload_folder,
 )
 
@@ -53,6 +57,7 @@ def apply_defaults(config_in, from_dot_env=None):
         "doc_storage_path": config.get(
             "DOC_STORAGE_PATH", "/tmp/rag_store/doc_storage"
         ),
+        "prefs_repo_dir": config.get("PREFS_REPO_DIR", "/tmp/rag_store/prefs_repo"),
         # NOTE: convenience to look it up - must be within the rag storage path
         "model_settings_path": f"{rag_storage_path}/model_settings.json",
         "repo_name": config.get("REPO_NAME", None),
@@ -82,13 +87,24 @@ def write_settings(config, settings):
         json.dump(settings, f)
 
 
-def push_to_repo(repo_name, config):
-    upload_folder(repo_name, config["rag_storage_path"])
+def mark_repo_as_active(config):
+    prefs = fetch_preferences(config["prefs_repo_dir"], config["prefs_repo_name"])
+    prefs["active_repo_id"] = config["repo_name"]
+    with open(
+        f"{config['prefs_repo_dir']}/preferences.json", "w", encoding="UTF-8"
+    ) as f:
+        json.dump(prefs, f)
+    upload_folder(config["prefs_repo_name"], config["prefs_repo_dir"])
+
+
+def push_to_repo(config):
+    upload_folder(config["repo_name"], config["rag_storage_path"])
+    mark_repo_as_active(config)
 
 
 def push_settings_update(config, settings):
     write_settings(config, settings)
-    push_to_repo(config["repo_name"], config)
+    push_to_repo(config)
 
 
 def push_initial_model_settings(config, repo_name):
@@ -113,6 +129,7 @@ def init_settings(config, repo_name):
         config["repo_name"] = repo_name
         push_initial_model_settings(config, repo_name)
 
+    config["repo_name"] = repo_name
     return fetch_full_repo(config, repo_name)
 
 
@@ -130,6 +147,39 @@ def response_to_transport(response):
     }
 
 
+def ensure_prefs_repo_exists(prefs_repo_dir):
+    prefs_repo_id = infer_prefs_repo_id()
+    if not repo_exists(prefs_repo_id):
+        logger.info("Creating preferences repo %s", prefs_repo_id)
+        create_repo(prefs_repo_id)
+        if not os.path.exists(prefs_repo_dir):
+            os.makedirs(prefs_repo_dir)
+        logger.info("Pushing initial preferences to repo %s", prefs_repo_id)
+        with open(f"{prefs_repo_dir}/preferences.json", "w", encoding="UTF-8") as f:
+            f.write("{}")
+        upload_folder(prefs_repo_id, prefs_repo_dir)
+    return prefs_repo_id
+
+
+def fetch_preferences(prefs_repo_dir, prefs_repo_id):
+    download_file(prefs_repo_id, "preferences.json", prefs_repo_dir)
+    with open(f"{prefs_repo_dir}/preferences.json", "r", encoding="UTF-8") as f:
+        prefs = json.load(f)
+    return prefs
+
+
+def requested_storage_repo(config):
+    """Returns the storage repo ID either set in environment
+    or fetched from the preferences repo. If neither is set,
+    returns None, allowing later code to set up a new storage repo."""
+    if os.environ.get("RAG_REPO_ID"):
+        return os.environ["RAG_REPO_ID"]
+
+    prefs = fetch_preferences(config["prefs_repo_dir"], config["prefs_repo_name"])
+    logger.info("Loaded preferences %s", prefs)
+    return prefs.get("active_repo_id")
+
+
 def create_app(config=None, model_builder=None):
     """Create the main Flask app with the given config."""
     config = apply_defaults(config or {}, dotenv_values(".env"))
@@ -139,7 +189,11 @@ def create_app(config=None, model_builder=None):
     # Capture the current time
     startTime = datetime.now()
 
-    settings = init_settings(config, config["repo_name"])
+    prefs_repo_id = ensure_prefs_repo_exists(config["prefs_repo_dir"])
+    config["prefs_repo_name"] = prefs_repo_id
+    logger.info("Preferences repo ID: %s", config["prefs_repo_name"])
+
+    settings = init_settings(config, requested_storage_repo(config))
     logger.info("Model settings on server initialisation: %s", settings)
     if not model_builder:
         model_builder = ModelBuilder(config["models_download_folder"])
@@ -157,8 +211,7 @@ def create_app(config=None, model_builder=None):
 
     # logger.info("Initialising repo at %s", config["repo_name"])
     # repo_name = init_repo(config["repo_name"])
-    repo_name = config["repo_name"]
-    if not repo_name:
+    if not config["repo_name"]:
         logger.error("Repo name should have been set already - dumb programmer error!")
         sys.exit(1)
 
@@ -172,11 +225,11 @@ def create_app(config=None, model_builder=None):
 
     @app.route("/repo_name")
     def get_repo_name():
-        return {"repo_name": repo_name}
+        return {"repo_name": config["repo_name"]}
 
     def checkpoint_docs():
         rag_storage.write_to_storage()
-        push_to_repo(repo_name, config)
+        push_to_repo(config)
 
     def handle_file_upload():
         if "file" not in request.files:
@@ -246,7 +299,7 @@ def create_app(config=None, model_builder=None):
         "/last-checkpoint",
     )
     def last_checkpoint_api():
-        last_commit = get_last_commit(repo_name)
+        last_commit = get_last_commit(config["repo_name"])
         if last_commit is None:
             return {"latest_change_time": None}
         return {"latest_change_time": last_commit.created_at}
@@ -307,7 +360,7 @@ def create_app(config=None, model_builder=None):
     def home():
         content = {
             "llm_model": settings["model"],
-            "repo_name": repo_name,
+            "repo_name": config["repo_name"],
             "files": list_files_api()["files"],
             "embed_model": DEFAULT_EMBEDDING_MODEL,
             "completion": "",
