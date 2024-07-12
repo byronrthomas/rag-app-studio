@@ -75,3 +75,9 @@ class RagStore:
         return self.index.as_chat_engine(
             chat_mode="condense_plus_context", llm=llm, **kwargs
         )
+
+    def get_nodes(self):
+        return self.index.docstore.get_nodes(self.index.docstore.docs.keys())
+
+    def get_node_text(self, node_id):
+        return self.index.docstore.get_node(node_id).get_content()

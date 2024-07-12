@@ -13,6 +13,7 @@ import gc
 
 
 from rag_studio import LOG_FILE_FOLDER
+from rag_studio.evaluation.retrieval import evaluate_on_auto_dataset
 from rag_studio.inference.repo_handling import infer_prefs_repo_id
 from rag_studio.log_files import tail_logs
 from rag_studio.model_builder import ModelBuilder
@@ -180,6 +181,17 @@ def requested_storage_repo(config):
     return prefs.get("active_repo_id")
 
 
+def retrieval_eval_result_to_transport(ragstore, re):
+    return {
+        "query": re.query,
+        "retrieved_texts": re.retrieved_texts,
+        "expected_texts": [
+            ragstore.get_node_text(node_id) for node_id in re.expected_ids
+        ],
+        "metrics": re.metric_vals_dict,
+    }
+
+
 def create_app(config=None, model_builder=None):
     """Create the main Flask app with the given config."""
     config = apply_defaults(config or {}, dotenv_values(".env"))
@@ -264,11 +276,14 @@ def create_app(config=None, model_builder=None):
         return {"files": rag_storage.list_files()}
 
     def complete_prompt(prompt):
-        response = rag_storage.make_query_engine(
-            llm=_engine["llm"], query_prompts=query_prompts_from_settings(settings)
-        ).query(prompt)
+        response = build_query_engine().query(prompt)
         logger.debug("Response from query engine: %s", response)
         return response
+
+    def build_query_engine():
+        return rag_storage.make_query_engine(
+            llm=_engine["llm"], query_prompts=query_prompts_from_settings(settings)
+        )
 
     @app.route("/trycompletion", methods=["POST"])
     def try_completion_api():
@@ -355,6 +370,13 @@ def create_app(config=None, model_builder=None):
         # The number of lines to return is an optional query param
         num_lines = request.args.get("num_lines", default=100, type=int)
         return {"logs": tail_logs(LOG_FILE_FOLDER, num_lines)}
+
+    @app.post("/evaluation/retrieval/autorun")
+    async def autorun():
+        raw_res = await evaluate_on_auto_dataset(
+            build_query_engine(), _engine["llm"], rag_storage.get_nodes()
+        )
+        return [retrieval_eval_result_to_transport(rag_storage, re) for re in raw_res]
 
     @app.route("/")
     def home():
