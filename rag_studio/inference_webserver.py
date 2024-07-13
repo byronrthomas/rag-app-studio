@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 import logging
 import secrets
+from typing import Union
 
 
 from fastapi import FastAPI, HTTPException
@@ -17,6 +18,8 @@ from llama_index.core.base.llms.types import ChatMessage
 from llama_index.core.schema import BaseComponent
 
 # from flask_cors import CORS
+from rag_studio import LOG_FILE_FOLDER
+from rag_studio.log_files import tail_logs
 from rag_studio.model_builder import ModelBuilder
 from rag_studio.model_settings import (
     DEFAULT_EMBEDDING_MODEL,
@@ -195,6 +198,12 @@ def get_query_prompts():
 def get_chat_prompts():
     """API to get the chat prompts."""
     return chat_prompts
+
+
+@app.get("/logs")
+def get_logs(num_lines: Union[int, None] = None):
+    """API to get the logs."""
+    return tail_logs(LOG_FILE_FOLDER, num_lines or 100)
 
 
 @app.post("/v1/chat/completions")

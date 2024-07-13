@@ -8,6 +8,10 @@ def tail_logs(log_directory, n):
         [f for f in os.listdir(log_directory) if f.startswith("application.log")],
         key=lambda x: os.path.getmtime(os.path.join(log_directory, x)),
     )
+    if not log_files:
+        raise FileNotFoundError(
+            f"No log files found in {log_directory} - is DISABLE_FILE_LOGGING set?"
+        )
 
     # A deque is used to keep the last n lines
     lines = deque(maxlen=n)
