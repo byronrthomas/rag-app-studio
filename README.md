@@ -1,5 +1,10 @@
 # Rag Studio
 
+## Things to document
+
+* Basic usage - how to configure the containers for both studio & app
+* How to do multi-model handling
+
 ## Known limitations
 
 * If you are using an older GPU like the NVidia V100, and a model that requires the "bfloat16" data type, RAG App studio will automatically choose "float16" which works fine for some models, but isn't guaranteed to work universally

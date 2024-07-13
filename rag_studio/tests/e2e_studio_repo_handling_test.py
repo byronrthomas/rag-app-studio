@@ -65,3 +65,35 @@ def test_when_prefs_repo_exists_provided_repo_id_overrides_it(
     assert resp.status_code == 200
     prefs = fetch_preferences(make_temp_folder(), TEST_PREFS_REPO)
     assert prefs.get("active_repo_id") == repo_id
+
+
+@pytest.fixture(name="fresh_app_env")
+def fresh_app_env_var_fixture():
+    os.environ["CREATE_NEW_RAG_APP"] = "true"
+    if "RAG_REPO_ID" in os.environ:
+        del os.environ["RAG_REPO_ID"]
+    yield
+    if "CREATE_NEW_RAG_APP" in os.environ:
+        del os.environ["CREATE_NEW_RAG_APP"]
+
+
+@pytest.mark.createsRepo
+def test_when_prefs_repo_exists_create_fresh_repo_overrides_it(
+    nogpu_client_factory, config_with_repo, fresh_app_env
+):
+    client = nogpu_client_factory(config_with_repo)
+    prefs = fetch_preferences(make_temp_folder(), TEST_PREFS_REPO)
+    assert prefs.get("active_repo_id") != TEST_REPO_NAME
+    assert client.get("/repo_name").json["repo_name"] == prefs.get("active_repo_id")
+
+
+def test_fails_if_create_new_app_and_repo_id_provided(
+    nogpu_client_factory, config_with_repo, fresh_app_env
+):
+    repo_id = f"test-other-repo-{secrets.token_hex(4)}"
+    os.environ["RAG_REPO_ID"] = repo_id
+    with pytest.raises(
+        ValueError,
+        match="Cannot set both RAG_REPO_ID and CREATE_NEW_RAG_APP - drop RAG_REPO_ID if you want a fresh app",
+    ):
+        nogpu_client_factory(config_with_repo)

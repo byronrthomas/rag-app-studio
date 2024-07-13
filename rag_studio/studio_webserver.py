@@ -173,6 +173,16 @@ def requested_storage_repo(config):
     """Returns the storage repo ID either set in environment
     or fetched from the preferences repo. If neither is set,
     returns None, allowing later code to set up a new storage repo."""
+    if os.environ.get("CREATE_NEW_RAG_APP"):
+        if os.environ.get("RAG_REPO_ID"):
+            logger.error(
+                "Cannot create new app and provide repo ID at the same time - drop RAG_REPO_ID if you want a new app"
+            )
+            raise ValueError(
+                "Cannot set both RAG_REPO_ID and CREATE_NEW_RAG_APP - drop RAG_REPO_ID if you want a fresh app"
+            )
+        return None
+
     if os.environ.get("RAG_REPO_ID"):
         return os.environ["RAG_REPO_ID"]
 
