@@ -23,6 +23,7 @@ from rag_studio.log_files import tail_logs
 from rag_studio.model_builder import ModelBuilder
 from rag_studio.model_settings import (
     DEFAULT_EMBEDDING_MODEL,
+    app_name_from_settings,
     chat_prompts_from_settings,
     query_prompts_from_settings,
     read_settings,
@@ -198,6 +199,18 @@ def get_query_prompts():
 def get_chat_prompts():
     """API to get the chat prompts."""
     return chat_prompts
+
+
+@app.get("/model-name")
+def get_model_name():
+    """API to get the model name."""
+    return {"model_name": MODEL_NAME}
+
+
+@app.get("/app-name")
+def get_app_name():
+    """API to get the app name."""
+    return {"app_name": app_name_from_settings(settings)}
 
 
 @app.get("/logs")
