@@ -66,12 +66,15 @@ class CommonRequestFields(BaseModel):
         # stop: Optional[List[str]] = None,
         # max_tokens ->    # max_new_tokens: int = 512,
         # logprobs: Optional[int] = None,
-        logger.info(
-            "Setting model params from request data: %s",
-            self.model_dump(exclude_unset=True, exclude={"messages", "prompt"}),
-        )
+        # NOTE: cannot set model
         if self.model != "rag_model":
             return "No ability to change model from rag_model - this has been baked into the API"
+        logger.info(
+            "Setting model params from request data: %s",
+            self.model_dump(
+                exclude_unset=True, exclude={"messages", "prompt", "model"}
+            ),
+        )
         if self.temperature:
             llm.temperature = self.temperature
         if self.n and self.n != 1:
