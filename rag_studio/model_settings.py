@@ -10,6 +10,7 @@ from llama_index.core.prompts.default_prompts import (
 
 DEFAULT_LLM_MODEL = "mistralai/Mistral-7B-Instruct-v0.1"
 DEFAULT_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
+DEFAULT_APP_NAME = "RAG Studio Application"
 
 
 def query_prompts_from_settings(settings):
@@ -26,6 +27,10 @@ def chat_prompts_from_settings(settings):
         "context_prompt": DEFAULT_CONTEXT_PROMPT_TEMPLATE,
     }
     return settings.get("chat_prompts", default_prompts)
+
+
+def app_name_from_settings(settings):
+    return settings.get("app_name", DEFAULT_APP_NAME)
 
 
 def read_settings(settings_path):

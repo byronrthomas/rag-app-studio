@@ -20,6 +20,7 @@ from rag_studio.model_builder import ModelBuilder
 from rag_studio.model_settings import (
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_LLM_MODEL,
+    app_name_from_settings,
     chat_prompts_from_settings,
     query_prompts_from_settings,
     read_settings,
@@ -367,6 +368,17 @@ def create_app(config=None, model_builder=None):
     @app.route("/query-prompts")
     def query_prompts():
         return query_prompts_from_settings(settings)
+
+    @app.post("/name")
+    def update_app_name():
+        app_name = request.json["app_name"]
+        settings["app_name"] = app_name
+        push_settings_update(config, settings)
+        return {"message": "App name updated"}
+
+    @app.route("/app-name")
+    def get_app_name():
+        return {"app_name": app_name_from_settings(settings)}
 
     @app.post("/update-query-prompts")
     def update_query_prompts():
