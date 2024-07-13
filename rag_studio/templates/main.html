@@ -116,6 +116,20 @@
         </form>
     </div> 
   </div>
+  <div class="content-block">
+    <div class="content-pane">
+        <h2>Retrieval evaluation</h2>
+        <div>
+
+            <div class="field-group">
+                <label>Run retrieval auto-evaluation:</label>
+                <form action="{{ url_for('retrieval_eval_autorun_view') }}" id="evalRunForm" method="post" target="_blank">
+                    <input type="submit" value="Run" />
+                </form>
+            </div>
+        </div>
+    </div>
+  </div>
 
   <script>
     function handleAjaxSubmitEvent(formElement, event, respHandler) {

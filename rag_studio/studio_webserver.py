@@ -371,12 +371,36 @@ def create_app(config=None, model_builder=None):
         num_lines = request.args.get("num_lines", default=100, type=int)
         return {"logs": tail_logs(LOG_FILE_FOLDER, num_lines)}
 
-    @app.post("/evaluation/retrieval/autorun")
-    async def autorun():
+    @app.post("/api/evaluation/retrieval/autorun")
+    async def autorun_retrieval_eval_api():
         raw_res = await evaluate_on_auto_dataset(
             build_query_engine(), _engine["llm"], rag_storage.get_nodes()
         )
         return [retrieval_eval_result_to_transport(rag_storage, re) for re in raw_res]
+
+    def format_for_display(eval_result):
+        if len(eval_result["expected_texts"]) != 1:
+            raise ValueError("Expected texts should be a list of length 1")
+        if len(eval_result["retrieved_texts"]) != 2:
+            raise ValueError("Retrieved texts should be a list of length 2")
+        return {
+            "query": eval_result["query"],
+            "expected_text": eval_result["expected_texts"][0],
+            "retrieved_text_0": eval_result["retrieved_texts"][0],
+            "retrieved_text_1": eval_result["retrieved_texts"][1],
+            "precision": eval_result["metrics"]["precision"],
+            "recall": eval_result["metrics"]["recall"],
+            "hit_rate": eval_result["metrics"]["hit_rate"],
+        }
+
+    @app.post("/evaluation/retrieval/autorun")
+    def retrieval_eval_autorun_view():
+        # TODO: change this bit to call API
+        # with open("data/sample_retrieval_eval.json") as f:
+        #     dummy_content = json.load(f)
+        content = autorun_retrieval_eval_api()
+        to_display = [format_for_display(res) for res in content]
+        return render_template("retrieval_eval_result.html", content=to_display)
 
     @app.route("/")
     def home():
