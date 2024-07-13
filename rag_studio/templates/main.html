@@ -1,10 +1,25 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}Saved to Repo {{content['repo_name'] }}{% endblock %}</h1>
 {% endblock %}
 
 {% block content %}
+  <div class="content-block">
+    <div class="content-pane single-pane">
+        <h2>RAG Application: {% block title %}{{ content['app_name'] }}{% endblock %}</h2>
+        <div>
+            <form id="appNameForm" method="post" action="{{ url_for('update_app_name') }}" >
+                <div class="field-group">
+                    <label>Set a new application name:</label>
+                    <input type="text" id="app_name" name="app_name" placeholder="{{ content['app_name'] }}"  />
+                    <input type="submit" value="Rename" />
+                </div>
+            </form>
+        </div>
+        <h3>Saved to Repo {{content['repo_name'] }}</h3>
+        
+    </div>
+  </div>
   <div class="content-block">
     <div class="content-pane">
         <h2>Knowledge-base (for retrieval)</h2>
@@ -243,6 +258,16 @@
     });
 
     document.getElementById('llmModelForm').addEventListener('submit', function(event) {
+        console.log('Form submitted');
+    
+        handleAjaxSubmitEvent(this, event, data => {
+            console.log('Received response:', data);
+            // Just reload the page for now
+            window.location.reload();
+        });
+    });
+
+    document.getElementById('appNameForm').addEventListener('submit', function(event) {
         console.log('Form submitted');
     
         handleAjaxSubmitEvent(this, event, data => {

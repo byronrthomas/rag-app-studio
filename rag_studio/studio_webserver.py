@@ -428,6 +428,7 @@ def create_app(config=None, model_builder=None):
     def home():
         content = {
             "llm_model": settings["model"],
+            "app_name": app_name_from_settings(settings),
             "repo_name": config["repo_name"],
             "files": list_files_api()["files"],
             "embed_model": DEFAULT_EMBEDDING_MODEL,
