@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <title>{% block title %}{% endblock %} - Rag App Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kode+Mono:wght@400..700&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 <nav>
-  <h1>RAG App Studio</h1>
+  <img id="logoBanner" alt="RAG App Studio" src="{{ url_for('static', filename='rag_app_studio_logo.png') }}"></img>
 </nav>
 <section class="content">
   <header>{% block header %}{% endblock %}</header>
