@@ -73,27 +73,6 @@ def preexisting_repo_fixture(test_config):
     return {**test_config, "REPO_NAME": TEST_REPO_NAME}
 
 
-@pytest.fixture(name="app")
-def app_fixture(test_config):
-    app = create_app(test_config)
-    print("App fixture created")
-    # other setup can go here
-
-    yield app
-
-    # clean up / reset resources here
-
-
-@pytest.fixture(name="client")
-def client_fixture(app):
-    return app.test_client()
-
-
-@pytest.fixture(name="runner")
-def runner_fixture(app):
-    return app.test_cli_runner()
-
-
 @pytest.fixture(name="mock_models")
 def mock_model_builder():
     return MagicMock()
