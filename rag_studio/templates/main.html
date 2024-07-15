@@ -4,9 +4,10 @@
 {% endblock %}
 
 {% block content %}
+<div>
   <div class="content-block">
     <div class="content-pane single-pane">
-        <h2>RAG Application: {% block title %}{{ content['app_name'] }}{% endblock %}</h2>
+        <h2>RAG Application: {{ content['app_name'] }}</h2>
         <div>
             <form id="appNameForm" method="post" action="{{ url_for('update_app_name') }}" >
                 <div class="field-group">
@@ -145,7 +146,7 @@
         </div>
     </div>
   </div>
-
+</div>
   <script>
     function handleAjaxSubmitEvent(formElement, event, respHandler) {
         event.preventDefault(); // Prevent the default form submission
