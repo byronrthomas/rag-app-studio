@@ -1,5 +1,6 @@
 import gc
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,8 @@ def free_gpu_memory():
 
     # Free the memory
     torch.cuda.empty_cache()
-    torch.cuda.reset_max_memory_allocated()
+    torch.cuda.reset_peak_memory_stats()
+    torch.cuda.ipc_collect()
 
     logger.info("GPU memory has been freed.")
 
@@ -68,6 +70,7 @@ def calculate_max_content_window(model_name, download_dir, inferred_dtype):
         dtype=inferred_dtype,
         download_dir=download_dir,
         tensor_parallel_size=torch.cuda.device_count(),
+        disable_custom_all_reduce=True,
     )
     engine_config = engine_args.create_engine_config()
     distributed_executor_backend = (
@@ -103,7 +106,9 @@ def calculate_max_content_window(model_name, download_dir, inferred_dtype):
         speculative_config=ec1_dict["speculative_config"],
         load_config=ec1_dict["load_config"],
     )
+
     gpu_blocks, _ = exec1.determine_num_available_blocks()
+    # NORMAL GC will invoke exec1 shutdown via finalizer
     del exec1
     return gpu_blocks * ec1_dict["cache_config"].block_size
 
@@ -152,12 +157,16 @@ class ModelBuilder:
             "Max possible content window (based on available GPU cache): %d",
             max_possible_content_window,
         )
+        logger.info(
+            "Torch distributed initialized: %s", torch.distributed.is_initialized()
+        )
         # Need to clear the cache to avoid OOM errors
+        time.sleep(10)
         free_gpu_memory()
         max_model_len = min(max_possible_model_len, max_possible_content_window)
         logger.info("Choosing max model length: %d", max_model_len)
 
-        return Vllm(
+        vllm = Vllm(
             model=llm_model,
             download_dir=self.vllm_models_folder(),
             dtype=inferred_dtype,
@@ -165,8 +174,10 @@ class ModelBuilder:
             tensor_parallel_size=torch.cuda.device_count(),
             vllm_kwargs={
                 "max_model_len": max_model_len,
+                "disable_custom_all_reduce": True,
             },
         )
+        return vllm
 
     def vllm_models_folder(self):
         return f"{self.models_download_folder}/vllm-via-llama-models"
