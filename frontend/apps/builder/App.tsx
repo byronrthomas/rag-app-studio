@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { buildUrl, jsonRequest, jsonRequestThenReload } from '@common/api';
 import '@common/styles.css';
 
 type Content = {
@@ -36,29 +37,6 @@ const empty_content: Content = {
   llm_model: '',
   completion: ''
 };
-
-// const HOST = 'http://localhost:8000';
-const HOST = "https://ragstudiooqrt8jjsde-a27c45490b0ac66c.tec-s1.onthetaedgecloud.com";
-function buildUrl(path: string): string {
-  return `${HOST}${path}`;
-}
-
-function jsonRequest(url: string, data: Record<string, unknown>): Promise<unknown> {
-  return fetch(buildUrl(url), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  }).then(response => response.json())
-    .catch(error => console.error('Error:', error));
-}
-
-function jsonRequestThenReload(url: string, data: Record<string, unknown>): Promise<void> {
-  return jsonRequest(url, data).then(() => {
-    window.location.reload();
-  });
-}
 
 const App = () => {
   const [content, setContent] = useState<Content>(empty_content);
