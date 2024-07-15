@@ -340,24 +340,9 @@ const ChatForm = () => {
 };
 
 const RetrievalEvaluation = () => {
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    fetch('/retrieval_eval_autorun_view', {
-      method: 'POST',
-    }).then(() => {
-      window.location.reload();
-    });
-  };
-
   return (
     <div className="content-pane single-pane">
-      <h2>Retrieval evaluation</h2>
-      <div className="field-group">
-        <label>Run retrieval auto-evaluation:</label>
-        <form id="evalRunForm" onSubmit={handleSubmit} target="_blank">
-          <input type="submit" value="Run" />
-        </form>
-      </div>
+      <a href="/evaluation/"><h2>Retrieval evaluation</h2></a>
     </div>
   );
 };
