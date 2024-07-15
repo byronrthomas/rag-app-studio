@@ -416,11 +416,10 @@ def create_app(config=None, model_builder=None):
         }
 
     @app.post("/evaluation/retrieval/autorun")
-    def retrieval_eval_autorun_view():
-        # TODO: change this bit to call API
+    async def retrieval_eval_autorun_view():
         # with open("data/sample_retrieval_eval.json") as f:
         #     dummy_content = json.load(f)
-        content = autorun_retrieval_eval_api()
+        content = await autorun_retrieval_eval_api()
         to_display = [format_for_display(res) for res in content]
         return render_template("retrieval_eval_result.html", content=to_display)
 
