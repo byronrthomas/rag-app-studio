@@ -9,6 +9,8 @@ WORKDIR /app
 
 # Copy all Python files from the build context, excluding those in the 'tests' directory
 COPY --chown=root:root ./rag_studio/*.py /app/rag_studio/
+COPY --chown=root:root ./rag_studio/evaluation/*.py /app/rag_studio/evaluation/
+COPY --chown=root:root ./rag_studio/inference/*.py /app/rag_studio/inference/
 # Also copy the static and templates for webserver
 COPY --chown=root:root ./rag_studio/static/* /app/rag_studio/static/
 COPY --chown=root:root ./rag_studio/templates/* /app/rag_studio/templates/
