@@ -425,7 +425,12 @@ def create_app(config=None, model_builder=None):
 
     @app.route("/")
     def home():
-        content = {
+        content = data_api()
+        return render_template("main.html", content=content)
+
+    @app.route("/api/data")
+    def data_api():
+        return {
             "llm_model": settings["model"],
             "app_name": app_name_from_settings(settings),
             "repo_name": config["repo_name"],
@@ -436,6 +441,5 @@ def create_app(config=None, model_builder=None):
             "chat_prompts": chat_prompts(),
             "query_prompts": query_prompts(),
         }
-        return render_template("main.html", content=content)
 
     return app
