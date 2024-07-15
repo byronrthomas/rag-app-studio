@@ -330,7 +330,7 @@ def create_app(config=None, model_builder=None):
             return {"latest_change_time": None}
         return {"latest_change_time": last_commit.created_at}
 
-    @app.post("/model")
+    @app.post("/update-model")
     def update_model():
         del _engine["llm"]
         gc.collect()
@@ -369,7 +369,7 @@ def create_app(config=None, model_builder=None):
     def query_prompts():
         return query_prompts_from_settings(settings)
 
-    @app.post("/name")
+    @app.post("/update-app-name")
     def update_app_name():
         app_name = request.json["app_name"]
         settings["app_name"] = app_name
