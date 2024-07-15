@@ -15,4 +15,5 @@ COPY --chown=root:root ./rag_studio/static /app/rag_studio/static
 COPY --chown=root:root ./rag_studio/app_templates /app/rag_studio/app_templates
 
 ENV VLLM_DO_NOT_TRACK=1
+ENV VLLM_CONFIGURE_LOGGING=0
 ENTRYPOINT ["bash", "-c", "source ~/.profile && fastapi run rag_studio/inference_webserver.py"]
