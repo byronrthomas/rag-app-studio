@@ -14,6 +14,7 @@ export default defineConfig({
       input: resolve(__dirname, 'apps/runner/index.html'),
     },
   },
+  publicDir: resolve(__dirname, 'common/public'),
   resolve: {
     alias: {
       '@common': resolve(__dirname, 'common')
