@@ -348,7 +348,7 @@ def create_app(config=None, model_builder=None):
     def get_model_name():
         return {"model_name": settings["model"]}
 
-    @app.post("/complete")
+    @app.post("/try-completion")
     def try_completion_view():
         prompt = request.form["prompt"]
         response = complete_prompt(prompt)
