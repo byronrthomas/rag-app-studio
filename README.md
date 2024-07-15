@@ -52,11 +52,13 @@ tell huggingface about it using `huggingface-cli login`
 ### Build a new tag
 
 ```
-docker build -f ./Dockerfile --build-arg BASE_IMAGE_TAG=2.2 -t byronthomas712/trial-container:2.2-prod-studio-3 .
+export BASE_TAG=2.4
+docker build -f ./Dockerfile --build-arg BASE_IMAGE_TAG=$BASE_TAG -t "byronthomas712/trial-container:$BASE_TAG-prod-studio-1" .
 ```
 
 ```
-docker build -f ./Dockerfile.inf --build-arg BASE_IMAGE_TAG=2.2 -t byronthomas712/trial-container:2.2-prod-inf-3 .
+export BASE_TAG=2.4
+docker build -f ./Dockerfile.inf --build-arg BASE_IMAGE_TAG=$BASE_TAG -t "byronthomas712/trial-container:$BASE_TAG-prod-inf-1" .
 ```
 
 ### Run from tag
