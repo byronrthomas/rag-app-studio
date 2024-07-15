@@ -8,17 +8,17 @@ import secrets
 from typing import Union
 
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
-
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.vllm import Vllm
 
 from llama_index.core.base.llms.types import ChatMessage
-from llama_index.core.schema import BaseComponent
 
 # from flask_cors import CORS
 from rag_studio import LOG_FILE_FOLDER
+from rag_studio.inference.repo_handling import infer_repo_id
 from rag_studio.log_files import tail_logs
 from rag_studio.model_builder import ModelBuilder
 from rag_studio.model_settings import (
@@ -29,13 +29,15 @@ from rag_studio.model_settings import (
     read_settings,
 )
 from rag_studio.ragstore import RagStore
-from rag_studio.hf_repo_storage import download_from_repo
+from rag_studio.hf_repo_storage import download_from_repo, get_last_commit
 from rag_studio.openai.schema import ChatCompletionRequest, CompletionRequest
 
 logger = logging.getLogger(__name__)
 
 
-def skeleton_openai_chat_response(req_id, completion_response, model_name="rag-chat"):
+def skeleton_openai_chat_response(
+    req_id, response_obj, model_name="rag-chat", include_contexts=False
+):
     """Construct a response that's representative of OpenAI format responses,
     even though we don't have most of the data that would be needed to construct it.
     Just fill in what we don't have with blanks"""
@@ -61,23 +63,23 @@ def skeleton_openai_chat_response(req_id, completion_response, model_name="rag-c
     #     "total_tokens": 21
     #   }
     # }
+    choice_obj = {
+        "index": 0,
+        "message": {
+            "role": "assistant",
+            "content": response_obj.response,
+        },
+        "logprobs": None,
+        "finish_reason": "stop",
+    }
+    add_contexts_if_needed(response_obj, include_contexts, choice_obj)
     return {
         "id": f"chatcmpl-{req_id}",
         "object": "chat.completion",
         "created": int(datetime.now().timestamp()),
         "model": model_name,
         "system_fingerprint": req_id,
-        "choices": [
-            {
-                "index": 0,
-                "message": {
-                    "role": "assistant",
-                    "content": completion_response,
-                },
-                "logprobs": None,
-                "finish_reason": "stop",
-            }
-        ],
+        "choices": [choice_obj],
         "usage": {
             "prompt_tokens": -1,
             "completion_tokens": -1,
@@ -86,8 +88,20 @@ def skeleton_openai_chat_response(req_id, completion_response, model_name="rag-c
     }
 
 
+def add_contexts_if_needed(response_obj, include_contexts, choice_obj):
+    if include_contexts:
+        choice_obj["contexts"] = [
+            {
+                "context": sn.text,
+                "score": sn.score,
+                "filename": sn.metadata.get("file_name"),
+            }
+            for sn in response_obj.source_nodes
+        ]
+
+
 def skeleton_openai_completion_response(
-    req_id, completion_response, model_name="rag-query"
+    req_id, responseObj, model_name="rag-query", include_contexts=False
 ):
     """Construct a response that's representative of OpenAI format responses,
     even though we don't have most of the data that would be needed to construct it.
@@ -113,20 +127,20 @@ def skeleton_openai_completion_response(
     #     "total_tokens": 12
     #   }
     # }
+    choice_obj = {
+        "text": responseObj.response,
+        "index": 0,
+        "logprobs": None,
+        "finish_reason": "length",
+    }
+    add_contexts_if_needed(responseObj, include_contexts, choice_obj)
     return {
         "id": f"cmpl-{req_id}",
         "object": "text_completion",
         "created": int(datetime.now().timestamp()),
         "model": model_name,
         "system_fingerprint": req_id,
-        "choices": [
-            {
-                "text": completion_response,
-                "index": 0,
-                "logprobs": None,
-                "finish_reason": "length",
-            }
-        ],
+        "choices": [choice_obj],
         "usage": {
             "prompt_tokens": -1,
             "completion_tokens": -1,
@@ -137,6 +151,8 @@ def skeleton_openai_completion_response(
 
 app = FastAPI()
 
+app.mount("/static", StaticFiles(directory="rag_studio/static"), name="static")
+templates = Jinja2Templates(directory="rag_studio/app_templates")
 
 # Capture the current time
 startTime = datetime.now()
@@ -145,7 +161,7 @@ startTime = datetime.now()
 # from config object
 rag_storage_path = os.environ.get("RAG_STORAGE_PATH", "/tmp/rag_storage")
 logger.info("RAG storage path: %s", rag_storage_path)
-rag_repo_id = os.environ.get("RAG_REPO_ID")
+rag_repo_id = infer_repo_id(os.environ.get("RAG_PREFS_PATH", "/tmp/rag_prefs"))
 if rag_repo_id is None:
     logger.error("RAG_REPO_ID is not set")
     sys.exit(1)
@@ -220,7 +236,7 @@ def get_logs(num_lines: Union[int, None] = None):
 
 
 @app.post("/v1/chat/completions")
-def chat_completions(req: ChatCompletionRequest):
+def chat_completions(req: ChatCompletionRequest, include_contexts: bool = False):
     """API to get completions for a given prompt."""
     req_id = secrets.token_hex(16)
     logger.info("Request ID: %s", req_id)
@@ -237,11 +253,13 @@ def chat_completions(req: ChatCompletionRequest):
     if problem_str:
         return HTTPException(status_code=400, detail=problem_str)
     result = chat_engine.chat(messages[-1], chat_history=history)
-    return skeleton_openai_chat_response(req_id, result.response, MODEL_NAME)
+    return skeleton_openai_chat_response(
+        req_id, result, MODEL_NAME, include_contexts=include_contexts
+    )
 
 
 @app.post("/v1/completions")
-def completions(req: CompletionRequest):
+def completions(req: CompletionRequest, include_contexts: bool = False):
     """API to get completions for a given prompt."""
     req_id = secrets.token_hex(16)
     logger.info("Request ID: %s", req_id)
@@ -249,4 +267,26 @@ def completions(req: CompletionRequest):
     if problem_str:
         return HTTPException(status_code=400, detail=problem_str)
     result = query_engine.query(req.prompt)
-    return skeleton_openai_completion_response(req_id, result.response, MODEL_NAME)
+    return skeleton_openai_completion_response(
+        req_id, result, MODEL_NAME, include_contexts=include_contexts
+    )
+
+
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    last_commit = get_last_commit(rag_repo_id)
+    last_commit_time = last_commit.created_at if last_commit else None
+    content = {
+        "llm_model": settings["model"],
+        "app_name": app_name_from_settings(settings),
+        "repo_name": rag_repo_id,
+        "files": rag_storage.list_files(),
+        "embed_model": DEFAULT_EMBEDDING_MODEL,
+        "completion": "",
+        "last_checkpoint": last_commit_time,
+        "chat_prompts": chat_prompts,
+        "query_prompts": query_prompts,
+    }
+    return templates.TemplateResponse(
+        request=request, name="main.html", context={"content": content}
+    )
