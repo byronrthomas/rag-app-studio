@@ -1,20 +1,29 @@
-// const HOST = 'http://localhost:8000';
-const HOST = "https://ragstudiooqrt8jjsde-a27c45490b0ac66c.tec-s1.onthetaedgecloud.com";
+const HOST = import.meta.env.VITE_API_PREFIX;
+console.log('VITE_API_PREFIX:', HOST);
+if (HOST === undefined) {
+    throw new Error('VITE_API_PREFIX is not set');
+}
+if (HOST !== '' && HOST.endsWith('/')) {
+    throw new Error('VITE_API_PREFIX should not end with /');
+}
 export function buildUrl(path: string): string {
-  return `${HOST}${path}`;
+    return `${HOST}${path}`;
 }
 export function jsonRequest(url: string, data: Record<string, unknown>): Promise<unknown> {
-  return fetch(buildUrl(url), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  }).then(response => response.json())
-    .catch(error => console.error('Error:', error));
-}export function jsonRequestThenReload(url: string, data: Record<string, unknown>): Promise<void> {
-  return jsonRequest(url, data).then(() => {
-    window.location.reload();
-  });
+    if (!(url && url.startsWith('/'))) {
+        throw new Error('URL cannot be empty and must start with /');
+    }
+    return fetch(buildUrl(url), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    }).then(response => response.json())
+        .catch(error => console.error('Error:', error));
+} export function jsonRequestThenReload(url: string, data: Record<string, unknown>): Promise<void> {
+    return jsonRequest(url, data).then(() => {
+        window.location.reload();
+    });
 }
 

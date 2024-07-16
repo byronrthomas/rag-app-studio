@@ -8,6 +8,7 @@ declare const __dirname: string; // Add this line
 export default defineConfig({
   plugins: [react()],
   root: resolve(__dirname, 'apps/builder'),
+  envDir: resolve(__dirname),
   build: {
     outDir: resolve(__dirname, 'apps/builder/dist'),
     rollupOptions: {
