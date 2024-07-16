@@ -11,9 +11,8 @@ WORKDIR /app
 COPY --chown=root:root ./rag_studio/*.py /app/rag_studio/
 COPY --chown=root:root ./rag_studio/evaluation/*.py /app/rag_studio/evaluation/
 COPY --chown=root:root ./rag_studio/inference/*.py /app/rag_studio/inference/
-# Also copy the static and templates for webserver
-COPY --chown=root:root ./rag_studio/static/* /app/rag_studio/static/
-COPY --chown=root:root ./rag_studio/templates/* /app/rag_studio/templates/
+# Also copy the builder_static assets to be served statically
+COPY --chown=root:root ./rag_studio/builder_static /app/rag_studio/builder_static
 
 ENV VLLM_DO_NOT_TRACK=1
 ENV VLLM_CONFIGURE_LOGGING=0

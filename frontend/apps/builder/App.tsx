@@ -76,7 +76,7 @@ const AppNameForm = ({ content }: {
 
   const handleSubmit = (event: { preventDefault: () => void; }) => {
     event.preventDefault();
-    return jsonRequestThenReload('/update-app-name', { app_name: appName });
+    return jsonRequestThenReload('/api/update-app-name', { app_name: appName });
   };
 
   return (
@@ -148,7 +148,7 @@ const LLM = ({ content }: { content: Content }) => {
 
   const handleModelSubmit = (event: React.ChangeEvent<never>) => {
     event.preventDefault();
-    return jsonRequestThenReload('/update-model', { model_name: modelName });
+    return jsonRequestThenReload('/api/update-model', { model_name: modelName });
   };
 
   return (
@@ -205,7 +205,7 @@ const QueryTemplateForm = ({ content }: { content: Content }) => {
   const handleSubmit = (event: React.ChangeEvent<never>) => {
     event.preventDefault();
 
-    return jsonRequestThenReload('/update-query-prompts', { text_qa_template: newQaTemplate, refine_template: refineTemplate });
+    return jsonRequestThenReload('/api/update-query-prompts', { text_qa_template: newQaTemplate, refine_template: refineTemplate });
   };
 
   return (
@@ -228,7 +228,7 @@ const ChatTemplateForm = ({ content }: { content: Content }) => {
 
   const handleSubmit = (event: { preventDefault: () => void; }) => {
     event.preventDefault();
-    return jsonRequestThenReload('/update-chat-prompts', { context_prompt: contextPrompt, condense_prompt: condensePrompt });
+    return jsonRequestThenReload('/api/update-chat-prompts', { context_prompt: contextPrompt, condense_prompt: condensePrompt });
   };
 
   return (
@@ -254,7 +254,7 @@ const SingleQueryForm = ({ content }: { content: Content }) => {
 
   const handleSubmit = (event: { preventDefault: () => void; }) => {
     event.preventDefault();
-    return jsonRequest('/try-completion', { prompt })
+    return jsonRequest('/api/try-completion', { prompt })
       .then((data: unknown) => {
         const typedData = data as { completion: string, contexts: ContextRecord[] };
         setCompletion(typedData.completion);
@@ -298,7 +298,7 @@ const ChatForm = () => {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    return jsonRequest('/try-chat', { messages })
+    return jsonRequest('/api/try-chat', { messages })
       .then((data) => {
         const typedData = data as { completion: string, contexts: ContextRecord[] };
         setMessages([...messages, { role: 'assistant', content: typedData.completion }, { role: 'user', content: '' }]);

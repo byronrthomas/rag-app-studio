@@ -4,7 +4,7 @@ import os
 import shutil
 import sys
 from dotenv import dotenv_values
-from flask import Flask, render_template, request, redirect
+from flask import Blueprint, Flask, render_template, request, redirect
 from flask_cors import CORS
 import logging
 
@@ -203,11 +203,10 @@ def retrieval_eval_result_to_transport(ragstore, re):
     }
 
 
-def create_app(config=None, model_builder=None):
-    """Create the main Flask app with the given config."""
+def create_api_blueprint(config=None, model_builder=None):
+    """Create the main Flask API handlers with the given config."""
     config = apply_defaults(config or {}, dotenv_values(".env"))
-    app = Flask(__name__)
-    CORS(app)
+    bp = Blueprint("api", __name__, url_prefix="/api")
 
     # Capture the current time
     startTime = datetime.now()
@@ -238,7 +237,7 @@ def create_app(config=None, model_builder=None):
         logger.error("Repo name should have been set already - dumb programmer error!")
         sys.exit(1)
 
-    @app.route("/healthcheck")
+    @bp.route("/healthcheck")
     def healthcheck_api():
         """Healthcheck API to check if the API is running."""
         return {
@@ -246,7 +245,7 @@ def create_app(config=None, model_builder=None):
             "start_time": startTime.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-    @app.route("/repo_name")
+    @bp.route("/repo_name")
     def get_repo_name():
         return {"repo_name": config["repo_name"]}
 
@@ -267,14 +266,14 @@ def create_app(config=None, model_builder=None):
             rag_storage.add_document(write_path)
             checkpoint_docs()
 
-    @app.route("/upload", methods=["POST"])
+    @bp.route("/upload", methods=["POST"])
     def upload_file_api():
         err_msg = handle_file_upload()
         if err_msg:
             return {"message": err_msg}, 400
         return {"message": "File uploaded successfully"}
 
-    @app.route("/upload-view", methods=["POST"])
+    @bp.route("/upload-view", methods=["POST"])
     def upload_file_view():
         err_msg = handle_file_upload()
         if err_msg:
@@ -282,7 +281,7 @@ def create_app(config=None, model_builder=None):
 
         return redirect("/")
 
-    @app.route("/files")
+    @bp.route("/files")
     def list_files_api():
         return {"files": rag_storage.list_files()}
 
@@ -296,7 +295,7 @@ def create_app(config=None, model_builder=None):
             llm=_engine["llm"], query_prompts=query_prompts_from_settings(settings)
         )
 
-    @app.route("/trycompletion", methods=["POST"])
+    @bp.post("/try-completion")
     def try_completion_api():
         prompt = request.json["prompt"]
         response = complete_prompt(prompt)
@@ -311,17 +310,17 @@ def create_app(config=None, model_builder=None):
         logger.debug("Response from chat engine: %s", response)
         return response
 
-    @app.route("/try-chat", methods=["POST"])
+    @bp.route("/try-chat", methods=["POST"])
     def try_chat_api():
         prompt = request.json["messages"]
         response = complete_chat(prompt)
         return response_to_transport(response)
 
-    @app.route("/inference-container-details", methods=["POST"])
+    @bp.route("/inference-container-details", methods=["POST"])
     def inference_container_details_api():
         return {"message": "Inference container details"}
 
-    @app.route(
+    @bp.route(
         "/last-checkpoint",
     )
     def last_checkpoint_api():
@@ -330,7 +329,7 @@ def create_app(config=None, model_builder=None):
             return {"latest_change_time": None}
         return {"latest_change_time": last_commit.created_at}
 
-    @app.post("/update-model")
+    @bp.post("/update-model")
     def update_model():
         del _engine["llm"]
         gc.collect()
@@ -344,56 +343,50 @@ def create_app(config=None, model_builder=None):
         _engine["llm"] = model_builder.make_llm(request.json["model_name"])
         return {"message": "Model updated"}
 
-    @app.route("/model-name")
+    @bp.route("/model-name")
     def get_model_name():
         return {"model_name": settings["model"]}
 
-    @app.post("/try-completion")
-    def try_completion_view():
-        prompt = request.form["prompt"]
-        response = complete_prompt(prompt)
-        return f"<div>{response}</div>"
-
-    @app.route("/chat-prompts")
+    @bp.route("/chat-prompts")
     def chat_prompts():
         return chat_prompts_from_settings(settings)
 
-    @app.post("/update-chat-prompts")
+    @bp.post("/update-chat-prompts")
     def update_chat_prompts():
         chat_prompts = request.json
         settings["chat_prompts"] = chat_prompts
         push_settings_update(config, settings)
         return {"message": "Chat prompts updated"}
 
-    @app.route("/query-prompts")
+    @bp.route("/query-prompts")
     def query_prompts():
         return query_prompts_from_settings(settings)
 
-    @app.post("/update-app-name")
+    @bp.post("/update-app-name")
     def update_app_name():
         app_name = request.json["app_name"]
         settings["app_name"] = app_name
         push_settings_update(config, settings)
         return {"message": "App name updated"}
 
-    @app.route("/app-name")
+    @bp.route("/app-name")
     def get_app_name():
         return {"app_name": app_name_from_settings(settings)}
 
-    @app.post("/update-query-prompts")
+    @bp.post("/update-query-prompts")
     def update_query_prompts():
         query_prompts = request.json
         settings["query_prompts"] = query_prompts
         push_settings_update(config, settings)
         return {"message": "Query prompts updated"}
 
-    @app.route("/logs")
+    @bp.route("/logs")
     def logs():
         # The number of lines to return is an optional query param
         num_lines = request.args.get("num_lines", default=100, type=int)
         return {"logs": tail_logs(LOG_FILE_FOLDER, num_lines)}
 
-    @app.post("/api/evaluation/retrieval/autorun")
+    @bp.post("/evaluation/retrieval/autorun")
     async def autorun_retrieval_eval_api():
         raw_res = await evaluate_on_auto_dataset(
             build_query_engine(), _engine["llm"], rag_storage.get_nodes()
@@ -415,20 +408,7 @@ def create_app(config=None, model_builder=None):
             "hit_rate": eval_result["metrics"]["hit_rate"],
         }
 
-    @app.post("/evaluation/retrieval/autorun")
-    async def retrieval_eval_autorun_view():
-        # with open("data/sample_retrieval_eval.json") as f:
-        #     dummy_content = json.load(f)
-        content = await autorun_retrieval_eval_api()
-        to_display = [format_for_display(res) for res in content]
-        return render_template("retrieval_eval_result.html", content=to_display)
-
-    @app.route("/")
-    def home():
-        content = data_api()
-        return render_template("main.html", content=content)
-
-    @app.route("/api/data")
+    @bp.route("/data")
     def data_api():
         return {
             "llm_model": settings["model"],
@@ -441,5 +421,27 @@ def create_app(config=None, model_builder=None):
             "chat_prompts": chat_prompts(),
             "query_prompts": query_prompts(),
         }
+
+    return bp
+
+
+def create_app(config=None, model_builder=None):
+    """Create the main Flask app with the given config."""
+    app = Flask(__name__, static_folder="builder_static", static_url_path="/")
+    CORS(app)
+
+    app.register_blueprint(create_api_blueprint(config, model_builder))
+
+    @app.route("/")
+    def home_from_static():
+        return app.send_static_file("index.html")
+
+    @app.route("/evaluation/")
+    def evaluation():
+        return app.send_static_file("evaluation/index.html")
+
+    @app.route("/evaluation")
+    def evaluation_no_slash():
+        return redirect("/evaluation/")
 
     return app
