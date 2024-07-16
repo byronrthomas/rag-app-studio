@@ -11,7 +11,10 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, 'apps/builder/dist'),
     rollupOptions: {
-      input: resolve(__dirname, 'apps/builder/index.html'),
+      input: {
+        main: resolve(__dirname, 'apps/builder/index.html'),
+        evaluation: resolve(__dirname, 'apps/builder/evaluation/index.html'),
+      }
     },
   },
   publicDir: resolve(__dirname, 'common/public'),
