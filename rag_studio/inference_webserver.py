@@ -10,7 +10,7 @@ from typing import Union
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -160,9 +160,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="rag_studio/static"), name="static")
-templates = Jinja2Templates(directory="rag_studio/app_templates")
-
 # Capture the current time
 startTime = datetime.now()
 
@@ -299,9 +296,9 @@ def get_data():
     }
 
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    content = get_data()
-    return templates.TemplateResponse(
-        request=request, name="main.html", context={"content": content}
-    )
+@app.get("/")
+def read_root():
+    return RedirectResponse("/index.html")
+
+
+app.mount("/", StaticFiles(directory="rag_studio/runner_static"), name="static")

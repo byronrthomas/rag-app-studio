@@ -7,3 +7,13 @@ build-fe-builder:
 	cd ..;\
 	rm -rf rag_studio/builder_static;\
 	cp -R frontend/apps/builder/dist ./rag_studio/builder_static;
+
+.PHONY: build-fe-runner
+
+build-fe-runner:
+	cd frontend;\
+	fnm use;\
+	npm run build:runner;\
+	cd ..;\
+	rm -rf rag_studio/runner_static;\
+	cp -R frontend/apps/runner/dist ./rag_studio/runner_static;

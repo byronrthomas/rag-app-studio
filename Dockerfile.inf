@@ -11,8 +11,7 @@ WORKDIR /app
 COPY --chown=root:root ./rag_studio/*.py /app/rag_studio/
 COPY --chown=root:root ./rag_studio/openai/*.py /app/rag_studio/openai/
 COPY --chown=root:root ./rag_studio/inference/*.py /app/rag_studio/inference/
-COPY --chown=root:root ./rag_studio/static /app/rag_studio/static
-COPY --chown=root:root ./rag_studio/app_templates /app/rag_studio/app_templates
+COPY --chown=root:root ./rag_studio/runner_static /app/rag_studio/runner_static
 
 ENV VLLM_DO_NOT_TRACK=1
 ENV VLLM_CONFIGURE_LOGGING=0
