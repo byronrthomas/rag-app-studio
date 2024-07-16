@@ -9,6 +9,7 @@ from typing import Union
 
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -151,6 +152,14 @@ def skeleton_openai_completion_response(
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.mount("/static", StaticFiles(directory="rag_studio/static"), name="static")
 templates = Jinja2Templates(directory="rag_studio/app_templates")
 
@@ -272,11 +281,12 @@ def completions(req: CompletionRequest, include_contexts: bool = False):
     )
 
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
+@app.get("/api/data")
+def get_data():
+    """API to get the data."""
     last_commit = get_last_commit(rag_repo_id)
     last_commit_time = last_commit.created_at if last_commit else None
-    content = {
+    return {
         "llm_model": settings["model"],
         "app_name": app_name_from_settings(settings),
         "repo_name": rag_repo_id,
@@ -287,6 +297,11 @@ def home(request: Request):
         "chat_prompts": chat_prompts,
         "query_prompts": query_prompts,
     }
+
+
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    content = get_data()
     return templates.TemplateResponse(
         request=request, name="main.html", context={"content": content}
     )
