@@ -1,42 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { buildUrl, jsonRequest, jsonRequestThenReload } from '@common/api';
 import '@common/styles.css';
-
-type Content = {
-  app_name: string;
-  repo_name: string;
-  embed_model: string;
-  files: string[];
-  last_checkpoint: string;
-  query_prompts: {
-    text_qa_template: string;
-    refine_template: string;
-  };
-  chat_prompts: {
-    context_prompt: string;
-    condense_prompt: string;
-  };
-  llm_model: string;
-  completion: string;
-};
-
-const empty_content: Content = {
-  app_name: '',
-  repo_name: '',
-  embed_model: '',
-  files: [],
-  last_checkpoint: '',
-  query_prompts: {
-    text_qa_template: '',
-    refine_template: '',
-  },
-  chat_prompts: {
-    context_prompt: '',
-    condense_prompt: '',
-  },
-  llm_model: '',
-  completion: ''
-};
+import { ChatMessage, Content, ContextRecord, empty_content } from '@common/types';
+import { SingleQueryForm } from '@common/components/SingleQueryForm';
+import { ChatForm } from '@common/components/ChatForm';
 
 const App = () => {
   const [content, setContent] = useState<Content>(empty_content);
@@ -59,10 +26,7 @@ const App = () => {
         <KnowledgeBase content={content} />
         <LLM content={content} />
       </div>
-      <div className="content-block">
-        <SingleQueryForm content={content} />
-        <ChatForm />
-      </div>
+      <TryLLMBlock />
       <div className="content-block">
         <RetrievalEvaluation />
       </div></>
@@ -183,7 +147,7 @@ const TextAreaFieldGroup = ({ label, currentVal, onChange, initialVal }: {
   useEffect(() => {
 
     if (initialVal !== lastInitialVal) {
-      console.log('initialVal has changed - ', initialVal, lastInitialVal);
+      // console.log('initialVal has changed - ', initialVal, lastInitialVal);
 
       setLastInitialVal(initialVal);
       onChange(initialVal);
@@ -222,6 +186,35 @@ const QueryTemplateForm = ({ content }: { content: Content }) => {
   );
 }
 
+const TryLLMBlock = () => {
+  const [completion, setCompletion] = useState('');
+  const [queryContexts, setQueryContexts] = useState<ContextRecord[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { role: 'system', content: 'You are a helpful assistant.' },
+  ]);
+  const [chatContexts, setChatContexts] = useState<ContextRecord[]>([]);
+
+  const handleSubmitQuery = async (prompt: string) => {
+    const data = await jsonRequest('/api/try-completion', { prompt });
+    const typedData = data as { completion: string; contexts: ContextRecord[]; };
+    setCompletion(typedData.completion);
+    setQueryContexts(typedData.contexts);
+  };
+  const handleSubmitChat = (messagesToSend: ChatMessage[]) => {
+    return jsonRequest('/api/try-chat', { messages: messagesToSend })
+      .then((data) => {
+        const typedData = data as { completion: string, contexts: ContextRecord[] };
+        setMessages([...messagesToSend, { role: 'assistant', content: typedData.completion }]);
+        setChatContexts(typedData.contexts);
+      });
+  };
+
+  return (<div className="content-block">
+    <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
+    <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+  </div>);
+}
+
 const ChatTemplateForm = ({ content }: { content: Content }) => {
   const [contextPrompt, setContextPrompt] = useState(content.chat_prompts.context_prompt);
   const [condensePrompt, setCondensePrompt] = useState(content.chat_prompts.condense_prompt);
@@ -240,104 +233,6 @@ const ChatTemplateForm = ({ content }: { content: Content }) => {
     </form>
   );
 }
-
-type ContextRecord = {
-  score: number;
-  filename: string;
-  context: string;
-};
-
-const SingleQueryForm = ({ content }: { content: Content }) => {
-  const [prompt, setPrompt] = useState('');
-  const [completion, setCompletion] = useState(content.completion);
-  const [contexts, setContexts] = useState<ContextRecord[]>([]);
-
-  const handleSubmit = (event: { preventDefault: () => void; }) => {
-    event.preventDefault();
-    return jsonRequest('/api/try-completion', { prompt })
-      .then((data: unknown) => {
-        const typedData = data as { completion: string, contexts: ContextRecord[] };
-        setCompletion(typedData.completion);
-        setContexts(typedData.contexts);
-      });
-  };
-
-  return (
-    <div className="content-pane">
-      <h2>Try a single query:</h2>
-      <form id="completionForm" onSubmit={handleSubmit}>
-        <div className="field-group">
-          <label>Prompt (no history):</label>
-          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} />
-        </div>
-        <div className="field-group">
-          <label>Last response:</label>
-          <textarea value={completion} disabled />
-        </div>
-        <input type="submit" value="Answer query" />
-        <h4>Retrieved texts for last query:</h4>
-        <div id="queryContexts">
-          {contexts.map((context, index) => (
-            <div key={index}>
-              <p>Score: {context.score} -- File: {context.filename}</p>
-              <p>{context.context}</p>
-            </div>
-          ))}
-        </div>
-      </form>
-    </div>
-  );
-};
-
-const ChatForm = () => {
-  const [messages, setMessages] = useState([
-    { role: 'system', content: 'You are a helpful assistant.' },
-    { role: 'user', content: '....' }
-  ]);
-  const [contexts, setContexts] = useState<ContextRecord[]>([]);
-
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    return jsonRequest('/api/try-chat', { messages })
-      .then((data) => {
-        const typedData = data as { completion: string, contexts: ContextRecord[] };
-        setMessages([...messages, { role: 'assistant', content: typedData.completion }, { role: 'user', content: '' }]);
-        setContexts(typedData.contexts);
-      });
-  };
-
-  const handleMessageChange = (index: number, content: string) => {
-    const newMessages = [...messages];
-    newMessages[index].content = content;
-    setMessages(newMessages);
-  };
-
-  return (
-    <div className="content-pane">
-      <h2>Try a chat</h2>
-      <form id="chatForm" onSubmit={handleSubmit}>
-        <div id="chatMessages">
-          {messages.map((message, index) => (
-            <div className="field-group" key={index}>
-              <label>{message.role}</label>
-              <textarea value={message.content} onChange={(e) => handleMessageChange(index, e.target.value)} />
-            </div>
-          ))}
-        </div>
-        <input type="submit" value="Respond to chat" />
-        <h4>Retrieved texts for last query:</h4>
-        <div id="chatContexts">
-          {contexts.map((context, index) => (
-            <div key={index}>
-              <p>Score: {context.score} -- File: {context.filename}</p>
-              <p>{context.context}</p>
-            </div>
-          ))}
-        </div>
-      </form>
-    </div>
-  );
-};
 
 const RetrievalEvaluation = () => {
   return (
