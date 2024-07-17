@@ -9,6 +9,7 @@ import { Tab } from '@mui/base/Tab';
 import { TabsList } from '@mui/base/TabsList';
 import { TabPanel } from '@mui/base/TabPanel';
 import { Tabs } from '@mui/base/Tabs';
+import { ContentBlockDiv, LightBorderedDiv } from '@common/components/Divs';
 
 const newOpenAIAPIRequest = () => { return { "model": "rag_model" }; }
 type openAICompletionResponseWithContexts = {
@@ -66,11 +67,11 @@ const App = () => {
     <>
       <AppNamePanel content={content} />
       <UseLLMBlock />
-      <div className="content-block">
+      <ContentBlockDiv extraClasses={["m-4 flex flex-row space-x-8"]}>
 
         <KnowledgeBase content={content} />
         <LLM content={content} />
-      </div>
+      </ContentBlockDiv>
     </>
   );
 };
@@ -104,7 +105,7 @@ const UseLLMBlock = () => {
           <Tab value={1} className="border-2 p-2 bg-gray-panel-bg" style={{ borderBottomStyle: "none" }}><H2 text="Chat" /></Tab>
           <Tab value={2} className="border-2 p-2 mx-2 bg-gray-panel-bg" style={{ borderBottomStyle: "none" }}><H2 text="One-off query" /></Tab>
         </TabsList>
-        <div className="border-2 p-4 bg-gray-panel-bg">
+        <ContentBlockDiv>
           <TabPanel value={1}>
             <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
 
@@ -112,7 +113,7 @@ const UseLLMBlock = () => {
           <TabPanel value={2}>
             <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
           </TabPanel>
-        </div>
+        </ContentBlockDiv>
       </Tabs>
     </div>
 
@@ -125,8 +126,8 @@ const AppNamePanel = ({ content }: {
 }) => {
 
   return (
-    <div className="content-block">
-      <div className="content-pane single-pane">
+    <ContentBlockDiv extraClasses={["m-4"]}>
+      <LightBorderedDiv>
         <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
           <H1 extraClasses={["text-red"]} text={`RAG Application: ${content.app_name}`} />
           <div style={{ display: "flex", flexDirection: "column", alignSelf: "center" }}>
@@ -137,14 +138,14 @@ const AppNamePanel = ({ content }: {
 
         <H3 text={`Reading from Repo ${content.repo_name}`} />
 
-      </div>
-    </div>
+      </LightBorderedDiv>
+    </ContentBlockDiv >
   );
 };
 
 const KnowledgeBase = ({ content }: { content: Content }) => {
   return (
-    <div className="content-pane">
+    <LightBorderedDiv extraClasses={["w-1/2"]}>
       <H2 text="Knowledge-base (for retrieval)" />
       <div>
         <div className="field-group">
@@ -164,13 +165,13 @@ const KnowledgeBase = ({ content }: { content: Content }) => {
           <input type="text" value={content.last_checkpoint} disabled />
         </div>
       </div>
-    </div>
+    </LightBorderedDiv>
   );
 };
 
 const LLM = ({ content }: { content: Content }) => {
   return (
-    <div className="content-pane">
+    <LightBorderedDiv extraClasses={["w-1/2"]}>
       <H2 text="LLM (for generation)" />
       <div>
         <div className="field-group">
@@ -180,7 +181,7 @@ const LLM = ({ content }: { content: Content }) => {
         <QueryTemplatePanel content={content} />
         <ChatTemplatePanel content={content} />
       </div>
-    </div>
+    </LightBorderedDiv>
   );
 };
 
