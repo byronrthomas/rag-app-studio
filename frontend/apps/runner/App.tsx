@@ -4,6 +4,7 @@ import '@common/styles.css';
 import { ChatMessage, Content, ContextRecord, empty_content } from '@common/types';
 import { SingleQueryForm } from '@common/components/SingleQueryForm';
 import { ChatForm } from '@common/components/ChatForm';
+import { H1, H2, H3, H4 } from '@common/components/Headers';
 
 const newOpenAIAPIRequest = () => { return { "model": "rag_model" }; }
 type openAICompletionResponseWithContexts = {
@@ -92,8 +93,14 @@ const UseLLMBlock = () => {
   };
 
   return (<div className="content-block">
-    <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
-    <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+    <div className="content-pane">
+      <H2 text="Chat" />
+      <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+    </div>
+    <div className="content-pane">
+      <H2 text="One-off query" />
+      <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
+    </div>
   </div>);
 }
 
@@ -105,14 +112,14 @@ const AppNamePanel = ({ content }: {
     <div className="content-block">
       <div className="content-pane single-pane">
         <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
-          <h1>RAG Application: {content.app_name}</h1>
+          <H1 text={`RAG Application: ${content.app_name}`} />
           <div style={{ display: "flex", flexDirection: "column", alignSelf: "center" }}>
             <img style={{ height: "3em" }} alt="RAG App Studio" src="/rag_app_studio_logo.png" />
           </div>
 
         </div>
 
-        <h3>Reading from Repo {content.repo_name}</h3>
+        <H3 text={`Reading from Repo ${content.repo_name}`} />
 
       </div>
     </div>
@@ -122,7 +129,7 @@ const AppNamePanel = ({ content }: {
 const KnowledgeBase = ({ content }: { content: Content }) => {
   return (
     <div className="content-pane">
-      <h2>Knowledge-base (for retrieval)</h2>
+      <H2 text="Knowledge-base (for retrieval)" />
       <div>
         <div className="field-group">
           <label>Embedding model:</label>
@@ -148,7 +155,7 @@ const KnowledgeBase = ({ content }: { content: Content }) => {
 const LLM = ({ content }: { content: Content }) => {
   return (
     <div className="content-pane">
-      <h2>LLM (for generation)</h2>
+      <H2 text="LLM (for generation)" />
       <div>
         <div className="field-group">
           <label>Model name:</label>
@@ -165,7 +172,7 @@ const LLM = ({ content }: { content: Content }) => {
 const QueryTemplatePanel = ({ content }: { content: Content }) => {
   return (
     <div id="queryTemplateForm">
-      <h4>Query prompts</h4>
+      <H4 text="Query prompts" />
       <div className="field-group">
         <label>Question answering:</label>
         <textarea value={content.query_prompts.text_qa_template} disabled />
@@ -183,7 +190,7 @@ const QueryTemplatePanel = ({ content }: { content: Content }) => {
 const ChatTemplatePanel = ({ content }: { content: Content }) => {
   return (
     <div id="chatTemplateForm">
-      <h4>Chat prompts</h4>
+      <H4 text="Chat prompts" />
       <div className="field-group">
         <label>Complete next chat:</label>
         <textarea value={content.chat_prompts.context_prompt} disabled />

@@ -4,6 +4,8 @@ import '@common/styles.css';
 import { ChatMessage, Content, ContextRecord, empty_content } from '@common/types';
 import { SingleQueryForm } from '@common/components/SingleQueryForm';
 import { ChatForm } from '@common/components/ChatForm';
+import { H2, H4 } from '@common/components/Headers';
+import { SubmitButton } from '@common/components/SubmitButton';
 
 const App = () => {
   const [content, setContent] = useState<Content>(empty_content);
@@ -46,12 +48,12 @@ const AppNameForm = ({ content }: {
   return (
     <div className="content-block">
       <div className="content-pane single-pane">
-        <h2>RAG Application: {content.app_name}</h2>
+        <H2 text={`RAG Application: ${content.app_name}`} />
         <form id="appNameForm" onSubmit={handleSubmit}>
           <div className="field-group">
             <label>Set a new application name:</label>
             <input type="text" value={appName} onChange={(e) => setAppName(e.target.value)} placeholder={content.app_name} />
-            <input type="submit" value="Rename" />
+            <SubmitButton text="Rename" />
           </div>
         </form>
         <h3>Saved to Repo {content.repo_name}</h3>
@@ -77,7 +79,7 @@ const KnowledgeBase = ({ content }: { content: Content }) => {
 
   return (
     <div className="content-pane">
-      <h2>Knowledge-base (for retrieval)</h2>
+      <H2 text="Knowledge-base (for retrieval)" />
       <div>
         <div className="field-group">
           <label>Embedding model:</label>
@@ -99,7 +101,7 @@ const KnowledgeBase = ({ content }: { content: Content }) => {
           <label>Upload file:</label>
           <form id="fileUploadForm" onSubmit={handleFileUpload}>
             <input type="file" onChange={(e) => setFile(e.target.files![0])} />
-            <input type="submit" value="Upload" />
+            <SubmitButton text="Upload" />
           </form>
         </div>
       </div>
@@ -117,7 +119,7 @@ const LLM = ({ content }: { content: Content }) => {
 
   return (
     <div className="content-pane">
-      <h2>LLM (for generation)</h2>
+      <H2 text="LLM (for generation)" />
       <div>
         <div className="field-group">
           <label>Model name:</label>
@@ -127,7 +129,7 @@ const LLM = ({ content }: { content: Content }) => {
           <div className="field-group">
             <label>Change the model:</label>
             <input type="text" value={modelName} onChange={(e) => setModelName(e.target.value)} placeholder={content.llm_model} />
-            <input type="submit" value="Change" />
+            <SubmitButton text="Change" />
           </div>
         </form>
         <QueryTemplateForm content={content} />
@@ -174,14 +176,14 @@ const QueryTemplateForm = ({ content }: { content: Content }) => {
 
   return (
     <form id="queryTemplateForm" onSubmit={handleSubmit}>
-      <h4>Query prompts</h4>
+      <H4 text="Query prompts" />
       <div className="field-group">
         <TextAreaFieldGroup label="Question answering:" currentVal={newQaTemplate} onChange={setQATemplate} initialVal={content.query_prompts.text_qa_template} />
       </div>
       <div className="field-group">
         <TextAreaFieldGroup label="Use more context to refine:" currentVal={refineTemplate} onChange={setRefineTemplate} initialVal={content.query_prompts.refine_template} />
       </div>
-      <input type="submit" value="Update query prompts" />
+      <SubmitButton text="Update query prompts" />
     </form>
   );
 }
@@ -210,8 +212,14 @@ const TryLLMBlock = () => {
   };
 
   return (<div className="content-block">
-    <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
-    <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+    <div className="content-pane">
+      <H2 text="Try a single query:" />
+      <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
+    </div>
+    <div className="content-pane">
+      <H2 text="Try a chat" />
+      <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+    </div>
   </div>);
 }
 
@@ -226,10 +234,10 @@ const ChatTemplateForm = ({ content }: { content: Content }) => {
 
   return (
     <form id="chatTemplateForm" onSubmit={handleSubmit}>
-      <h4>Chat prompts</h4>
+      <H4 text="Chat prompts" />
       <TextAreaFieldGroup label="Complete next chat:" currentVal={contextPrompt} onChange={setContextPrompt} initialVal={content.chat_prompts.context_prompt} />
       <TextAreaFieldGroup label="Build a question based on history & context" currentVal={condensePrompt} onChange={setCondensePrompt} initialVal={content.chat_prompts.condense_prompt} />
-      <input type="submit" value="Update chat prompts" />
+      <SubmitButton text="Update chat prompts" />
     </form>
   );
 }
@@ -237,7 +245,7 @@ const ChatTemplateForm = ({ content }: { content: Content }) => {
 const RetrievalEvaluation = () => {
   return (
     <div className="content-pane single-pane">
-      <a href="/evaluation/"><h2>Retrieval evaluation</h2></a>
+      <a href="/evaluation/"><H2 text="Retrieval evaluation" /></a>
     </div>
   );
 };

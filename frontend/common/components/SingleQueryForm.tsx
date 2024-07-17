@@ -1,5 +1,8 @@
 import { ContextRecord } from "@common/types";
 import { useState } from "react";
+import { SubmitButton } from "./SubmitButton";
+import { H4 } from "./Headers";
+import { ExistingMsgPanel, YouMsgPanel } from "./chatbot/MessagePanels";
 
 export const SingleQueryForm = ({ completion, contexts, handleSubmit: handleSubmitQuery }: { completion: string, contexts: ContextRecord[], handleSubmit: (prompt: string) => void }) => {
     const [prompt, setPrompt] = useState('');
@@ -10,28 +13,23 @@ export const SingleQueryForm = ({ completion, contexts, handleSubmit: handleSubm
     }
 
     return (
-        <div className="content-pane">
-            <h2>Try a single query:</h2>
-            <form id="completionForm" onSubmit={handleSubmit}>
-                <div className="field-group">
-                    <label>Prompt (no history):</label>
-                    <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} />
-                </div>
-                <div className="field-group">
-                    <label>Last response:</label>
-                    <textarea value={completion} disabled />
-                </div>
-                <input type="submit" value="Answer query" />
-                <h4>Retrieved texts for last query:</h4>
-                <div id="queryContexts">
-                    {contexts.map((context, index) => (
-                        <div key={index}>
-                            <p>Score: {context.score} -- File: {context.filename}</p>
-                            <p>{context.context}</p>
-                        </div>
-                    ))}
-                </div>
-            </form>
-        </div>
+        <form id="completionForm" onSubmit={handleSubmit}>
+            <div className="border rounded p-6">
+                <YouMsgPanel value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+                <ExistingMsgPanel message={{ role: 'assistant', content: completion }} />
+                <SubmitButton text="Answer query" />
+            </div>
+
+
+            <H4 text="Retrieved texts for last query:" />
+            <div id="queryContexts">
+                {contexts.map((context, index) => (
+                    <div key={index}>
+                        <p>Score: {context.score} -- File: {context.filename}</p>
+                        <p>{context.context}</p>
+                    </div>
+                ))}
+            </div>
+        </form>
     );
 };
