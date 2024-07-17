@@ -3,8 +3,12 @@ import { buildUrl, jsonRequest } from '@common/api';
 import '@common/styles.css';
 import { ChatMessage, Content, ContextRecord, empty_content } from '@common/types';
 import { SingleQueryForm } from '@common/components/SingleQueryForm';
-import { ChatForm } from '@common/components/ChatForm';
+import { ChatForm } from '@common/components/chatbot/ChatForm';
 import { H1, H2, H3, H4 } from '@common/components/Headers';
+import { Tab } from '@mui/base/Tab';
+import { TabsList } from '@mui/base/TabsList';
+import { TabPanel } from '@mui/base/TabPanel';
+import { Tabs } from '@mui/base/Tabs';
 
 const newOpenAIAPIRequest = () => { return { "model": "rag_model" }; }
 type openAICompletionResponseWithContexts = {
@@ -92,16 +96,28 @@ const UseLLMBlock = () => {
     setChatContexts(typedData.choices[0].contexts);
   };
 
-  return (<div className="content-block">
-    <div className="content-pane">
-      <H2 text="Chat" />
-      <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+  return (<div className="flex m-4">
+    <div className='w-full'>
+
+      <Tabs defaultValue={1}>
+        <TabsList>
+          <Tab value={1} className="border-2 p-2 bg-gray-panel-bg" style={{ borderBottomStyle: "none" }}><H2 text="Chat" /></Tab>
+          <Tab value={2} className="border-2 p-2 mx-2 bg-gray-panel-bg" style={{ borderBottomStyle: "none" }}><H2 text="One-off query" /></Tab>
+        </TabsList>
+        <div className="border-2 p-4 bg-gray-panel-bg">
+          <TabPanel value={1}>
+            <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+
+          </TabPanel>
+          <TabPanel value={2}>
+            <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
+          </TabPanel>
+        </div>
+      </Tabs>
     </div>
-    <div className="content-pane">
-      <H2 text="One-off query" />
-      <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
-    </div>
-  </div>);
+
+  </div>
+  );
 }
 
 const AppNamePanel = ({ content }: {
@@ -112,7 +128,7 @@ const AppNamePanel = ({ content }: {
     <div className="content-block">
       <div className="content-pane single-pane">
         <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
-          <H1 text={`RAG Application: ${content.app_name}`} />
+          <H1 extraClasses={["text-red"]} text={`RAG Application: ${content.app_name}`} />
           <div style={{ display: "flex", flexDirection: "column", alignSelf: "center" }}>
             <img style={{ height: "3em" }} alt="RAG App Studio" src="/rag_app_studio_logo.png" />
           </div>

@@ -7,5 +7,5 @@ export type TextAreaProps = {
 }
 
 export const TextArea = ({ value, disabled, onChange }: TextAreaProps) => {
-    return <TextareaAutosize className="px-1" value={value} onChange={onChange} disabled={disabled || false} />
+    return <TextareaAutosize className="px-1 border border-gray-med" value={value} onChange={onChange} disabled={disabled || false} />
 }

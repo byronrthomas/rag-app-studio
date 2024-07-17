@@ -12,7 +12,9 @@ export default {
       "red": "#B22222",
       //hsl(120, 61%, 26%)
       "green": "#1a6a1a",
-      "darkgreen": "hsl(120, 51%, 10%)",
+      "gray-dark": "hsl(120, 51%, 10%)",
+      "gray-med": "hsl(120, 11%, 50%)",
+      "gray-panel-bg": "hsl(120, 5%, 83%)",
       "blue": "#4682B4",
       "gold": "#FFD700"
 

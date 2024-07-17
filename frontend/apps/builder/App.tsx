@@ -3,7 +3,7 @@ import { buildUrl, jsonRequest, jsonRequestThenReload } from '@common/api';
 import '@common/styles.css';
 import { ChatMessage, Content, ContextRecord, empty_content } from '@common/types';
 import { SingleQueryForm } from '@common/components/SingleQueryForm';
-import { ChatForm } from '@common/components/ChatForm';
+import { ChatForm } from '@common/components/chatbot/ChatForm';
 import { H2, H4 } from '@common/components/Headers';
 import { SubmitButton } from '@common/components/SubmitButton';
 

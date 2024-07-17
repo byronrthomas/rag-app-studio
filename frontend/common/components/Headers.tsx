@@ -1,28 +1,28 @@
 
-function withCommonClasses(...classes: string[]) {
-    return ["font-bold", ...classes].join(' ');
+function withCommonClasses(extraClasses: string[] = [], ...classes: string[]) {
+    return ["font-bold", ...classes, ...extraClasses].join(' ');
 }
 
-export const H1 = ({ text }: { text: string }) => {
+export const H1 = ({ text, extraClasses }: { text: string, extraClasses?: string[] }) => {
     return (
-        <h1 className={withCommonClasses()}>{text}</h1>
+        <h1 className={withCommonClasses(extraClasses)}>{text}</h1>
     );
 }
 
-export const H2 = ({ text }: { text: string }) => {
+export const H2 = ({ text, extraClasses }: { text: string, extraClasses?: string[] }) => {
     return (
-        <h2 className={withCommonClasses("text-2xl underline")}>{text}</h2>
+        <h2 className={withCommonClasses(extraClasses, "text-2xl underline")}>{text}</h2>
     );
 }
 
-export const H3 = ({ text }: { text: string }) => {
+export const H3 = ({ text, extraClasses }: { text: string, extraClasses?: string[] }) => {
     return (
-        <h3 className={withCommonClasses()}>{text}</h3>
+        <h3 className={withCommonClasses(extraClasses)}>{text}</h3>
     );
 }
 
-export const H4 = ({ text }: { text: string }) => {
+export const H4 = ({ text, extraClasses }: { text: string, extraClasses?: string[] }) => {
     return (
-        <h4 className={withCommonClasses()}>{text}</h4>
+        <h4 className={withCommonClasses(extraClasses)}>{text}</h4>
     );
 }

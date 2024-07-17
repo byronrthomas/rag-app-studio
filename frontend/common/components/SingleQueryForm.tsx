@@ -1,8 +1,8 @@
 import { ContextRecord } from "@common/types";
 import { useState } from "react";
 import { SubmitButton } from "./SubmitButton";
-import { H4 } from "./Headers";
 import { ExistingMsgPanel, YouMsgPanel } from "./chatbot/MessagePanels";
+import { ContextDebugPanel } from "./chatbot/ContextDebugPanel";
 
 export const SingleQueryForm = ({ completion, contexts, handleSubmit: handleSubmitQuery }: { completion: string, contexts: ContextRecord[], handleSubmit: (prompt: string) => void }) => {
     const [prompt, setPrompt] = useState('');
@@ -19,17 +19,7 @@ export const SingleQueryForm = ({ completion, contexts, handleSubmit: handleSubm
                 <ExistingMsgPanel message={{ role: 'assistant', content: completion }} />
                 <SubmitButton text="Answer query" />
             </div>
-
-
-            <H4 text="Retrieved texts for last query:" />
-            <div id="queryContexts">
-                {contexts.map((context, index) => (
-                    <div key={index}>
-                        <p>Score: {context.score} -- File: {context.filename}</p>
-                        <p>{context.context}</p>
-                    </div>
-                ))}
-            </div>
+            <ContextDebugPanel contexts={contexts} />
         </form>
     );
 };
