@@ -19,6 +19,7 @@ from llama_index.core.base.llms.types import ChatMessage
 
 # from flask_cors import CORS
 from rag_studio import LOG_FILE_FOLDER, attach_handlers
+from rag_studio.chat_history import ChatHistory
 from rag_studio.inference.repo_handling import infer_repo_id
 from rag_studio.log_files import tail_logs
 from rag_studio.model_builder import ModelBuilder
@@ -209,6 +210,9 @@ chat_prompts = chat_prompts_from_settings(settings)
 chat_engine = rag_storage.make_chat_engine(llm=llm, chat_prompts=chat_prompts)
 query_prompts = query_prompts_from_settings(settings)
 query_engine = rag_storage.make_query_engine(llm=llm, query_prompts=query_prompts)
+chat_history = ChatHistory()
+
+
 @app.on_event("startup")
 async def startup_event():
     uvi_logger = logging.getLogger("uvicorn")
@@ -245,6 +249,12 @@ def get_logs(num_lines: Union[int, None] = None):
     return tail_logs(LOG_FILE_FOLDER, num_lines or 100)
 
 
+@app.get("/chat-history/{user_id}")
+def get_chat_history(user_id: str):
+    """API to get the chat history for a user."""
+    return chat_history.get_user_chat_history(user_id)
+
+
 @app.post("/v1/chat/completions")
 def chat_completions(req: ChatCompletionRequest, include_contexts: bool = False):
     """API to get completions for a given prompt."""
@@ -263,6 +273,15 @@ def chat_completions(req: ChatCompletionRequest, include_contexts: bool = False)
     if problem_str:
         return HTTPException(status_code=400, detail=problem_str)
     result = chat_engine.chat(messages[-1], chat_history=history)
+    if req.user:
+        logger.info("Tracking chat history for user %s", req.user)
+        chat_history.update_user_chat_history(
+            user_id=req.user,
+            prev_messages=messages[:-1],
+            new_question=new_message,
+            new_answer={"role": "assistant", "content": result.response},
+        )
+
     return skeleton_openai_chat_response(
         req_id, result, MODEL_NAME, include_contexts=include_contexts
     )
