@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { buildUrl, jsonRequest, jsonRequestThenReload } from '@common/api';
 import '@common/styles.css';
 import { ChatMessage, Content, ContextRecord, empty_content } from '@common/types';
@@ -10,7 +10,9 @@ import { ContentBlockDiv, LightBorderedDiv } from '@common/components/Divs';
 import { TextArea } from '@common/components/TextArea';
 import { KnowledgeBasePanel } from '@common/components/KnowledgeBasePanel';
 import { Select, Option } from '@mui/base';
-import { SpinnerOverlay } from '@common/components/SpinnerOverlay';
+import { IsLoadingContext } from '@common/components/IsLoadingContext';
+import { LoadingOverlayProvider } from '@common/components/LoadingOverlayProvider';
+
 
 const App = () => {
   const [content, setContent] = useState<Content>(empty_content);
@@ -27,7 +29,7 @@ const App = () => {
   }, []);
 
   return (
-    <>
+    <LoadingOverlayProvider>
       <AppNameForm content={content} />
       <ContentBlockDiv extraClasses={["m-4 flex flex-row space-x-8"]}>
         <KnowledgeBasePanel content={content} allowUpload={true} />
@@ -37,7 +39,7 @@ const App = () => {
       <ContentBlockDiv extraClasses={["m-4"]}>
         <RetrievalEvaluation />
       </ContentBlockDiv>
-    </>
+    </LoadingOverlayProvider>
   );
 };
 
@@ -45,17 +47,16 @@ const AppNameForm = ({ content }: {
   content: Content
 }) => {
   const [appName, setAppName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const setSubmitting = useContext(IsLoadingContext);
 
   const handleSubmit = (event: { preventDefault: () => void; }) => {
     event.preventDefault();
-    setIsSubmitting(true);
+    setSubmitting(true);
     return jsonRequestThenReload('/api/update-app-name', { app_name: appName });
   };
 
   return (
     <>
-      <SpinnerOverlay isVisible={isSubmitting} />
       <ContentBlockDiv extraClasses={["m-4"]}>
         <LightBorderedDiv>
           <H2 extraClasses={["text-red"]} text={`RAG Application: ${content.app_name}`} />
@@ -84,11 +85,13 @@ const AppNameForm = ({ content }: {
 
 const LLM = ({ content }: { content: Content }) => {
   const [modelName, setModelName] = useState('');
+  const setSubmitting = useContext(IsLoadingContext);
 
   const handleModelSubmit = (event: React.ChangeEvent<never>) => {
     if (!modelName) {
       return;
     }
+    setSubmitting(true);
     event.preventDefault();
     return jsonRequestThenReload('/api/update-model', { model_name: modelName });
   };
@@ -160,9 +163,11 @@ const TextAreaFieldGroup = ({ label, currentVal, onChange, initialVal }: {
 const QueryTemplateForm = ({ content }: { content: Content }) => {
   const [newQaTemplate, setQATemplate] = useState(content.query_prompts.text_qa_template);
   const [refineTemplate, setRefineTemplate] = useState(content.query_prompts.refine_template);
+  const setSubmitting = useContext(IsLoadingContext);
 
   const handleSubmit = (event: React.ChangeEvent<never>) => {
     event.preventDefault();
+    setSubmitting(true);
 
     return jsonRequestThenReload('/api/update-query-prompts', { text_qa_template: newQaTemplate, refine_template: refineTemplate });
   };
@@ -182,9 +187,11 @@ const QueryTemplateForm = ({ content }: { content: Content }) => {
 const ChatTemplateForm = ({ content }: { content: Content }) => {
   const [contextPrompt, setContextPrompt] = useState(content.chat_prompts.context_prompt);
   const [condensePrompt, setCondensePrompt] = useState(content.chat_prompts.condense_prompt);
+  const setSubmitting = useContext(IsLoadingContext);
 
   const handleSubmit = (event: { preventDefault: () => void; }) => {
     event.preventDefault();
+    setSubmitting(true);
     return jsonRequestThenReload('/api/update-chat-prompts', { context_prompt: contextPrompt, condense_prompt: condensePrompt });
   };
 
@@ -205,16 +212,21 @@ const TryLLMBlock = () => {
     { role: 'system', content: 'You are a helpful assistant.' },
   ]);
   const [chatContexts, setChatContexts] = useState<ContextRecord[]>([]);
+  const setSubmitting = useContext(IsLoadingContext);
 
   const handleSubmitQuery = async (prompt: string) => {
+    setSubmitting(true);
     const data = await jsonRequest('/api/try-completion', { prompt });
+    setSubmitting(false);
     const typedData = data as { completion: string; contexts: ContextRecord[]; };
     setCompletion(typedData.completion);
     setQueryContexts(typedData.contexts);
   };
   const handleSubmitChat = (messagesToSend: ChatMessage[]) => {
+    setSubmitting(true);
     return jsonRequest('/api/try-chat', { messages: messagesToSend })
       .then((data) => {
+        setSubmitting(false);
         const typedData = data as { completion: string, contexts: ContextRecord[] };
         setMessages([...messagesToSend, { role: 'assistant', content: typedData.completion }]);
         setChatContexts(typedData.contexts);

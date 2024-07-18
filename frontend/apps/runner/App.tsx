@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { buildUrl, jsonRequest } from '@common/api';
 import '@common/styles.css';
 import { ChatMessage, Content, ContextRecord, empty_content } from '@common/types';
@@ -11,6 +11,8 @@ import { TabPanel } from '@mui/base/TabPanel';
 import { Tabs } from '@mui/base/Tabs';
 import { ContentBlockDiv, LightBorderedDiv } from '@common/components/Divs';
 import { KnowledgeBasePanel } from '@common/components/KnowledgeBasePanel';
+import { IsLoadingContext } from '@common/components/IsLoadingContext';
+import { LoadingOverlayProvider } from '@common/components/LoadingOverlayProvider';
 
 const newOpenAIAPIRequest = () => { return { "model": "rag_model" }; }
 type openAICompletionResponseWithContexts = {
@@ -65,7 +67,7 @@ const App = () => {
   }, []);
 
   return (
-    <>
+    <LoadingOverlayProvider>
       <AppNamePanel content={content} />
       <UseLLMBlock />
       <ContentBlockDiv extraClasses={["m-4 flex flex-row space-x-8"]}>
@@ -73,9 +75,37 @@ const App = () => {
         <KnowledgeBasePanel content={content} />
         <LLM content={content} />
       </ContentBlockDiv>
-    </>
+    </LoadingOverlayProvider>
   );
 };
+
+const AppNamePanel = ({ content }: {
+  content: Content
+}) => {
+
+  return (
+    <ContentBlockDiv extraClasses={["m-4"]}>
+      <LightBorderedDiv>
+        <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
+          <H1 extraClasses={["text-red"]} text={`RAG Application: ${content.app_name}`} />
+          <div style={{ display: "flex", flexDirection: "column", alignSelf: "center" }}>
+            <img style={{ height: "3em" }} alt="RAG App Studio" src="/rag_app_studio_logo.png" />
+          </div>
+
+        </div>
+
+        <div className="flex flex-row my-2 gap-4">
+          <label>Saved to Repo</label>
+          <input className="w-80" type="text" value={content.repo_name} disabled />
+          <label>Last app change</label>
+          <input className="w-80" type="text" value={content.last_checkpoint} disabled />
+        </div>
+
+      </LightBorderedDiv>
+    </ContentBlockDiv >
+  );
+};
+
 
 const UseLLMBlock = () => {
   const [completion, setCompletion] = useState('');
@@ -84,15 +114,20 @@ const UseLLMBlock = () => {
     { role: 'system', content: 'You are a helpful assistant.' },
   ]);
   const [chatContexts, setChatContexts] = useState<ContextRecord[]>([]);
+  const setSubmitting = useContext(IsLoadingContext);
 
   const handleSubmitQuery = async (prompt: string) => {
+    setSubmitting(true);
     const data = await jsonRequest('/v1/completions?include_contexts=1', { prompt, ...newOpenAIAPIRequest() });
+    setSubmitting(false);
     const typedData = data as openAICompletionResponseWithContexts;
     setCompletion(typedData.choices[0].text);
     setQueryContexts(typedData.choices[0].contexts);
   };
   const handleSubmitChat = async (messagesToSend: ChatMessage[]) => {
+    setSubmitting(true);
     const data = await jsonRequest('/v1/chat/completions?include_contexts=1', { messages: messagesToSend, ...newOpenAIAPIRequest() });
+    setSubmitting(false);
     const typedData = data as openAIChatResponseWithContexts;
     setMessages([...messagesToSend, { role: 'assistant', content: typedData.choices[0].message.content }]);
     setChatContexts(typedData.choices[0].contexts);
@@ -122,32 +157,6 @@ const UseLLMBlock = () => {
   );
 }
 
-const AppNamePanel = ({ content }: {
-  content: Content
-}) => {
-
-  return (
-    <ContentBlockDiv extraClasses={["m-4"]}>
-      <LightBorderedDiv>
-        <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
-          <H1 extraClasses={["text-red"]} text={`RAG Application: ${content.app_name}`} />
-          <div style={{ display: "flex", flexDirection: "column", alignSelf: "center" }}>
-            <img style={{ height: "3em" }} alt="RAG App Studio" src="/rag_app_studio_logo.png" />
-          </div>
-
-        </div>
-
-        <div className="flex flex-row my-2 gap-4">
-          <label>Saved to Repo</label>
-          <input className="w-80" type="text" value={content.repo_name} disabled />
-          <label>Last app change</label>
-          <input className="w-80" type="text" value={content.last_checkpoint} disabled />
-        </div>
-
-      </LightBorderedDiv>
-    </ContentBlockDiv >
-  );
-};
 
 const LLM = ({ content }: { content: Content }) => {
   return (

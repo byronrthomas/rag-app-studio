@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import '@common/styles.css';
 import { jsonRequest } from '@common/api';
+import { IsLoadingContext } from '@common/components/IsLoadingContext';
+import { LoadingOverlayProvider } from '@common/components/LoadingOverlayProvider';
 
 // Response type looks like:
 // {
@@ -23,22 +25,31 @@ type RetrievalEvalResult = {
   };
 };
 
-const App = () => {
-  const [results, setResults] = useState<RetrievalEvalResult[]>([]);
-
+const LaunchAutoRunButton = ({ onResultsReturned }: { onResultsReturned: (d: RetrievalEvalResult[]) => void }) => {
+  const setSubmitting = useContext(IsLoadingContext);
   const onAutoRunClicked = (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
     return jsonRequest('/api/evaluation/retrieval/autorun', {})
       .then((data) => {
-        setResults(data as RetrievalEvalResult[]);
+        setSubmitting(false);
+        onResultsReturned(data as RetrievalEvalResult[]);
       });
   };
 
+  return <button className="px-6 font-semibold border-2 border-black bg-green text-whitesmoke disabled:bg-whitesmoke disabled:text-gray-med disabled:border-0" onClick={onAutoRunClicked}>Run retrieval auto-evaluation</button>;
+}
+
+const App = () => {
+  const [results, setResults] = useState<RetrievalEvalResult[]>([]);
+
+
+
   return (
-    <>
-      <button onClick={onAutoRunClicked}>Run retrieval auto-evaluation</button>
+    <LoadingOverlayProvider>
+      <LaunchAutoRunButton onResultsReturned={setResults} />
       <ResultsTable results={results} />
-    </>
+    </LoadingOverlayProvider>
   );
 };
 
