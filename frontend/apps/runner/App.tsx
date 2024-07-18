@@ -166,10 +166,12 @@ const LLM = ({ content }: { content: Content }) => {
   return (
     <LightBorderedDiv extraClasses={["w-1/2"]}>
       <H2 text="LLM (for generation)" />
-      <div>
-        <div className="field-group">
-          <label>Model name:</label>
-          <input type="text" value={content.llm_model} disabled />
+      <div className="my-4 space-y-4">
+        <div className="space-y-2">
+          <div className="flex flex-row justify-between">
+            <label>LLM model:</label>
+            <input className="w-3/4" type="text" value={content.llm_model} disabled />
+          </div>
         </div>
         <QueryTemplatePanel content={content} />
         <ChatTemplatePanel content={content} />
