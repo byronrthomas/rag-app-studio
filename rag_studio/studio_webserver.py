@@ -4,9 +4,10 @@ import os
 import shutil
 import sys
 from dotenv import dotenv_values
-from flask import Blueprint, Flask, render_template, request, redirect
+from flask import Blueprint, Flask, request, redirect
 from flask_cors import CORS
 import logging
+import traceback
 
 from llama_index.core.base.llms.types import ChatMessage
 import gc
@@ -443,5 +444,14 @@ def create_app(config=None, model_builder=None):
     @app.route("/evaluation")
     def evaluation_no_slash():
         return redirect("/evaluation/")
+
+    @app.errorhandler(500)
+    def handle_500_error(_e):
+        # Log the error with traceback
+        error_trace = traceback.format_exc()
+        logger.error("An error occurred:\n%s", error_trace)
+
+        # Return a custom message for the 500 error or use Flask's default message
+        return "An internal server error occurred", 500
 
     return app

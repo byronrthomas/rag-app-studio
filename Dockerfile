@@ -16,4 +16,4 @@ COPY --chown=root:root ./rag_studio/builder_static /app/rag_studio/builder_stati
 
 ENV VLLM_DO_NOT_TRACK=1
 ENV VLLM_CONFIGURE_LOGGING=0
-ENTRYPOINT ["bash", "-c", "service ssh start; source ~/.profile && flask --app rag_studio.studio_webserver run --debug --no-reload --host=0.0.0.0 --port=8000"]
+ENTRYPOINT ["bash", "-c", "service ssh start; source ~/.profile && flask --app rag_studio.studio_webserver run --no-reload --host=0.0.0.0 --port=8000"]
