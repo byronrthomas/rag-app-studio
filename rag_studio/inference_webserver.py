@@ -18,7 +18,7 @@ from fastapi.templating import Jinja2Templates
 from llama_index.core.base.llms.types import ChatMessage
 
 # from flask_cors import CORS
-from rag_studio import LOG_FILE_FOLDER
+from rag_studio import LOG_FILE_FOLDER, attach_handlers
 from rag_studio.inference.repo_handling import infer_repo_id
 from rag_studio.log_files import tail_logs
 from rag_studio.model_builder import ModelBuilder
@@ -209,6 +209,10 @@ chat_prompts = chat_prompts_from_settings(settings)
 chat_engine = rag_storage.make_chat_engine(llm=llm, chat_prompts=chat_prompts)
 query_prompts = query_prompts_from_settings(settings)
 query_engine = rag_storage.make_query_engine(llm=llm, query_prompts=query_prompts)
+@app.on_event("startup")
+async def startup_event():
+    uvi_logger = logging.getLogger("uvicorn")
+    attach_handlers(uvi_logger)
 
 
 @app.get("/query-prompts")
