@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
+from typing import List
 
 # Retrieve log level from environment or use "DEBUG" as default
 log_level_name = os.environ.get("LOG_LEVEL", "DEBUG")
@@ -11,6 +12,7 @@ log_level = logging.getLevelName(log_level_name)
 root_logger = logging.getLogger()
 root_logger.setLevel(log_level)
 
+
 # Create console handler for output to stdout
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(log_level)
@@ -19,9 +21,7 @@ console_handler.setLevel(log_level)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 console_handler.setFormatter(formatter)
 
-# Add handlers to the root logger
-root_logger.addHandler(console_handler)
-
+all_handlers: List[logging.Handler] = [console_handler]
 LOG_FILE_FOLDER = "/var/log/rag_studio"
 if os.environ.get("DISABLE_FILE_LOGGING") != "1":
     # Create rotating file handler
@@ -37,4 +37,13 @@ if os.environ.get("DISABLE_FILE_LOGGING") != "1":
     file_handler.setFormatter(formatter)
 
     # Add file handler to the root logger
-    root_logger.addHandler(file_handler)
+    all_handlers.append(file_handler)
+
+
+def attach_handlers(logger):
+    for handler in all_handlers:
+        logger.addHandler(handler)
+
+
+# Attach handlers to the root logger
+attach_handlers(root_logger)
