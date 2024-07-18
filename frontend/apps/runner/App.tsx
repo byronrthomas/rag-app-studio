@@ -14,6 +14,9 @@ import { KnowledgeBasePanel } from '@common/components/KnowledgeBasePanel';
 import { IsLoadingContext } from '@common/components/IsLoadingContext';
 import { LoadingOverlayProvider } from '@common/components/LoadingOverlayProvider';
 import { TextArea } from '@common/components/TextArea';
+import { Select, Option } from '@mui/base';
+import { getUserId } from './userId';
+import { DEFAULT_MODEL_PARAMS, ModelParamsPanel } from '@common/components/chatbot/ModelParamsPanel';
 
 const newOpenAIAPIRequest = () => { return { "model": "rag_model" }; }
 type openAICompletionResponseWithContexts = {
@@ -107,6 +110,36 @@ const AppNamePanel = ({ content }: {
   );
 };
 
+type ChatHistories = {
+  key: string,
+  messages: ChatMessage[]
+}[];
+
+const chatHistoryDisplay = (chatHistoryRec: { key: string, messages: ChatMessage[] }) => {
+  if (chatHistoryRec.messages.length == 0) {
+    return ''
+  }
+  const firstUserMessage = chatHistoryRec.messages.find(m => m.role == 'user');
+  if (!firstUserMessage) {
+    return '';
+  }
+  const contentToSummarise = firstUserMessage.content;
+  const messageCount = ` [${chatHistoryRec.messages.length} messages]`;
+  if (contentToSummarise.length > 40) {
+    return contentToSummarise.substring(0, 37) + '...' + messageCount;
+  }
+  return contentToSummarise + messageCount;
+}
+
+const fetchChatHistories = (userId: string) => {
+  return fetch(buildUrl(`/chat-history/${userId}`), {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  }).then(response => response.json())
+    .then((data) => (data as ChatHistories));
+}
 
 const UseLLMBlock = () => {
   const [completion, setCompletion] = useState('');
@@ -116,7 +149,25 @@ const UseLLMBlock = () => {
   ]);
   const [chatContexts, setChatContexts] = useState<ContextRecord[]>([]);
   const [tabIndex, setTabIndex] = useState(1);
+  const [chatHistoryIndex, setChatHistoryIndex] = useState(-1);
+  const [chatHistories, setChatHistories] = useState<ChatHistories>([]);
+  const [userId, setUserId] = useState('');
   const setSubmitting = useContext(IsLoadingContext);
+
+  useEffect(() => {
+    const uid = getUserId();
+    //console.log('User ID:', uid);
+    setUserId(uid);
+  }, []);
+  useEffect(() => {
+    if (userId !== '') {
+      fetchChatHistories(userId).then(histories => {
+        setChatHistories(histories);
+      })
+        .catch(error => console.error('Error:', error))
+    }
+  }, [userId]);
+
 
   const handleSubmitQuery = async (prompt: string) => {
     setSubmitting(true);
@@ -128,12 +179,30 @@ const UseLLMBlock = () => {
   };
   const handleSubmitChat = async (messagesToSend: ChatMessage[]) => {
     setSubmitting(true);
-    const data = await jsonRequest('/v1/chat/completions?include_contexts=1', { messages: messagesToSend, ...newOpenAIAPIRequest() });
-    setSubmitting(false);
+    const userDetails = userId !== '' ? { user: userId } : {};
+    const data = await jsonRequest('/v1/chat/completions?include_contexts=1', { messages: messagesToSend, ...newOpenAIAPIRequest(), ...userDetails });
     const typedData = data as openAIChatResponseWithContexts;
     setMessages([...messagesToSend, { role: 'assistant', content: typedData.choices[0].message.content }]);
     setChatContexts(typedData.choices[0].contexts);
+    if (userId !== '') {
+      const updatedHistories = await fetchChatHistories(userId);
+      setChatHistories(updatedHistories);
+    } else {
+      setChatHistories([{ key: "unknown", messages: messages }]);
+    }
+
+    setChatHistoryIndex(0);
+    setSubmitting(false);
   };
+  const loadChat = (index: number | null) => {
+    if (index === null || index < 0) {
+      setChatHistoryIndex(-1);
+      setMessages([{ role: 'system', content: 'You are a helpful assistant.' }]);
+      return;
+    }
+    setChatHistoryIndex(index);
+    setMessages(chatHistories[index].messages);
+  }
 
   const nonSelectedTabClasses = "border-2 p-2 bg-gray-panel-bg";
   const selectedTabClasses = "border-2 p-2 bg-gold";
@@ -147,7 +216,30 @@ const UseLLMBlock = () => {
         </TabsList>
         <ContentBlockDiv>
           <TabPanel value={1}>
-            <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+            <div className="flex flex-row gap-2">
+
+              <div className="w-2/3">
+
+                <div className="flex flex-row justify-between content-center items-center my-2">
+                  <div>Extend a previous chat:</div>
+                  <Select className="bg-whitesmoke border border-gold w-192" disabled={chatHistories.length == 0} value={chatHistoryIndex} onChange={(_, newValue) => loadChat(newValue)} slotProps={{ popup: { className: 'bg-whitesmoke border border-gold w-192 hover:cursor-pointer -z-1', disablePortal: true } }}>
+                    {chatHistories.map((historyRec, i) => (
+                      <Option key={i} value={i}>{chatHistoryDisplay(historyRec)}</Option>
+                    ))}
+                    {chatHistoryIndex >= 0 && <Option key={-1} value={-1}>Begin a new chat..</Option>}
+                  </Select>
+
+                </div>
+
+                <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+
+
+
+              </div>
+              <div className="w-1/3">
+                <ModelParamsPanel modelParams={DEFAULT_MODEL_PARAMS} onModelParamsChange={() => { alert("Params changed") }} />
+              </div>
+            </div>
 
           </TabPanel>
           <TabPanel value={2}>

@@ -91,3 +91,7 @@ button:focus-visible {
         animation: logo-spin infinite 20s linear;
     }
 }
+
+.w-192 {
+    width: 48rem;
+}
