@@ -18,7 +18,7 @@ export const SingleQueryForm = ({ completion, contexts, handleSubmit: handleSubm
             <LightBorderedDiv>
                 <YouMsgPanel value={prompt} onChange={(e) => setPrompt(e.target.value)} />
                 <ExistingMsgPanel message={{ role: 'assistant', content: completion }} />
-                <SubmitButton text="Answer query" />
+                <SubmitButton extraClasses={["my-4"]} text="Answer query" />
             </LightBorderedDiv>
             <ContextDebugPanel contexts={contexts} />
         </form>

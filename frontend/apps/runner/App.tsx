@@ -4,12 +4,13 @@ import '@common/styles.css';
 import { ChatMessage, Content, ContextRecord, empty_content } from '@common/types';
 import { SingleQueryForm } from '@common/components/SingleQueryForm';
 import { ChatForm } from '@common/components/chatbot/ChatForm';
-import { H1, H2, H3, H4 } from '@common/components/Headers';
+import { H1, H2, H4 } from '@common/components/Headers';
 import { Tab } from '@mui/base/Tab';
 import { TabsList } from '@mui/base/TabsList';
 import { TabPanel } from '@mui/base/TabPanel';
 import { Tabs } from '@mui/base/Tabs';
 import { ContentBlockDiv, LightBorderedDiv } from '@common/components/Divs';
+import { KnowledgeBasePanel } from '@common/components/KnowledgeBasePanel';
 
 const newOpenAIAPIRequest = () => { return { "model": "rag_model" }; }
 type openAICompletionResponseWithContexts = {
@@ -69,7 +70,7 @@ const App = () => {
       <UseLLMBlock />
       <ContentBlockDiv extraClasses={["m-4 flex flex-row space-x-8"]}>
 
-        <KnowledgeBase content={content} />
+        <KnowledgeBasePanel content={content} />
         <LLM content={content} />
       </ContentBlockDiv>
     </>
@@ -136,36 +137,15 @@ const AppNamePanel = ({ content }: {
 
         </div>
 
-        <H3 text={`Reading from Repo ${content.repo_name}`} />
+        <div className="flex flex-row my-2 gap-4">
+          <label>Saved to Repo</label>
+          <input className="w-80" type="text" value={content.repo_name} disabled />
+          <label>Last app change</label>
+          <input className="w-80" type="text" value={content.last_checkpoint} disabled />
+        </div>
 
       </LightBorderedDiv>
     </ContentBlockDiv >
-  );
-};
-
-const KnowledgeBase = ({ content }: { content: Content }) => {
-  return (
-    <LightBorderedDiv extraClasses={["w-1/2"]}>
-      <H2 text="Knowledge-base (for retrieval)" />
-      <div>
-        <div className="field-group">
-          <label>Embedding model:</label>
-          <input type="text" value={content.embed_model} disabled />
-        </div>
-        <div>
-          <label>Files uploaded:</label>
-          <ul>
-            {content.files && content.files.map((file, index) => (
-              <li key={index}>{file}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="field-group">
-          <label>Latest checkpoint:</label>
-          <input type="text" value={content.last_checkpoint} disabled />
-        </div>
-      </div>
-    </LightBorderedDiv>
   );
 };
 

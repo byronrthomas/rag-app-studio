@@ -6,6 +6,11 @@ import { SingleQueryForm } from '@common/components/SingleQueryForm';
 import { ChatForm } from '@common/components/chatbot/ChatForm';
 import { H2, H4 } from '@common/components/Headers';
 import { SubmitButton } from '@common/components/SubmitButton';
+import { ContentBlockDiv, LightBorderedDiv } from '@common/components/Divs';
+import { TextArea } from '@common/components/TextArea';
+import { KnowledgeBasePanel } from '@common/components/KnowledgeBasePanel';
+import { Select, Option } from '@mui/base';
+import { SpinnerOverlay } from '@common/components/SpinnerOverlay';
 
 const App = () => {
   const [content, setContent] = useState<Content>(empty_content);
@@ -22,16 +27,17 @@ const App = () => {
   }, []);
 
   return (
-    <><AppNameForm content={content} />
-      <div className="content-block">
-
-        <KnowledgeBase content={content} />
+    <>
+      <AppNameForm content={content} />
+      <ContentBlockDiv extraClasses={["m-4 flex flex-row space-x-8"]}>
+        <KnowledgeBasePanel content={content} allowUpload={true} />
         <LLM content={content} />
-      </div>
+      </ContentBlockDiv>
       <TryLLMBlock />
-      <div className="content-block">
+      <ContentBlockDiv extraClasses={["m-4"]}>
         <RetrievalEvaluation />
-      </div></>
+      </ContentBlockDiv>
+    </>
   );
 };
 
@@ -39,73 +45,40 @@ const AppNameForm = ({ content }: {
   content: Content
 }) => {
   const [appName, setAppName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (event: { preventDefault: () => void; }) => {
     event.preventDefault();
+    setIsSubmitting(true);
     return jsonRequestThenReload('/api/update-app-name', { app_name: appName });
   };
 
   return (
-    <div className="content-block">
-      <div className="content-pane single-pane">
-        <H2 text={`RAG Application: ${content.app_name}`} />
-        <form id="appNameForm" onSubmit={handleSubmit}>
-          <div className="field-group">
-            <label>Set a new application name:</label>
-            <input type="text" value={appName} onChange={(e) => setAppName(e.target.value)} placeholder={content.app_name} />
-            <SubmitButton text="Rename" />
-          </div>
-        </form>
-        <h3>Saved to Repo {content.repo_name}</h3>
-      </div>
-    </div>
-  );
-};
+    <>
+      <SpinnerOverlay isVisible={isSubmitting} />
+      <ContentBlockDiv extraClasses={["m-4"]}>
+        <LightBorderedDiv>
+          <H2 extraClasses={["text-red"]} text={`RAG Application: ${content.app_name}`} />
+          <form id="appNameForm" onSubmit={handleSubmit}>
+            <div className="flex flex-row my-4 justify-between">
+              <div className="flex flex-row gap-4">
+                <input className="w-80" type="text" value={appName} onChange={(e) => setAppName(e.target.value)} placeholder={content.app_name} />
+                <SubmitButton disabled={!appName} text="Rename" />
+              </div>
 
-const KnowledgeBase = ({ content }: { content: Content }) => {
-  const [file, setFile] = useState<File | null>(null);
+              <div className="flex flex-row gap-4">
+                <label>Saved to Repo</label>
+                <input className="w-80" type="text" value={content.repo_name} disabled />
+              </div>
 
-  const handleFileUpload = (event: { preventDefault: () => void; }) => {
-    event.preventDefault();
-    const formData = new FormData();
-    formData.append('file', file!);
-    fetch(buildUrl('/upload'), {
-      method: 'POST',
-      body: formData,
-    }).then(() => {
-      window.location.reload();
-    });
-  };
-
-  return (
-    <div className="content-pane">
-      <H2 text="Knowledge-base (for retrieval)" />
-      <div>
-        <div className="field-group">
-          <label>Embedding model:</label>
-          <input type="text" value={content.embed_model} disabled />
-        </div>
-        <div>
-          <label>Files uploaded:</label>
-          <ul>
-            {content.files && content.files.map((file, index) => (
-              <li key={index}>{file}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="field-group">
-          <label>Latest checkpoint:</label>
-          <input type="text" value={content.last_checkpoint} disabled />
-        </div>
-        <div className="field-group">
-          <label>Upload file:</label>
-          <form id="fileUploadForm" onSubmit={handleFileUpload}>
-            <input type="file" onChange={(e) => setFile(e.target.files![0])} />
-            <SubmitButton text="Upload" />
+              <div className="flex flex-row gap-4">
+                <label>Last app change</label>
+                <input className="w-80" type="text" value={content.last_checkpoint} disabled />
+              </div>
+            </div>
           </form>
-        </div>
-      </div>
-    </div>
+        </LightBorderedDiv>
+      </ContentBlockDiv></>
   );
 };
 
@@ -113,29 +86,47 @@ const LLM = ({ content }: { content: Content }) => {
   const [modelName, setModelName] = useState('');
 
   const handleModelSubmit = (event: React.ChangeEvent<never>) => {
+    if (!modelName) {
+      return;
+    }
     event.preventDefault();
     return jsonRequestThenReload('/api/update-model', { model_name: modelName });
   };
 
+  const supportedModels = [
+    "google/gemma-2b-it", "google/gemma-7b-it",
+    /* 18GB */ "google/gemma-2-9b-it",
+    "mistralai/Mistral-7B-Instruct-v0.1",
+    "meta-llama/Meta-Llama-3-8B-Instruct",
+    "meta-llama/Llama-2-7b-chat-hf"];
+
+
   return (
-    <div className="content-pane">
+    <LightBorderedDiv extraClasses={["w-1/2"]}>
       <H2 text="LLM (for generation)" />
-      <div>
-        <div className="field-group">
-          <label>Model name:</label>
-          <input type="text" value={content.llm_model} disabled />
-        </div>
-        <form id="llmModelForm" onSubmit={handleModelSubmit}>
-          <div className="field-group">
-            <label>Change the model:</label>
-            <input type="text" value={modelName} onChange={(e) => setModelName(e.target.value)} placeholder={content.llm_model} />
-            <SubmitButton text="Change" />
+      <div className="my-4 space-y-4">
+        <div className="space-y-2">
+          <div className="flex flex-row justify-between">
+            <label>LLM model:</label>
+            <input className="w-3/4" type="text" value={content.llm_model} disabled />
           </div>
-        </form>
+          <form id="llmModelForm" onSubmit={handleModelSubmit}>
+            <div className="flex flex-row justify-between content-center items-center">
+              <SubmitButton disabled={!modelName} text="Change" />
+              <Select className="bg-whitesmoke w-3/4 border border-gold" value={modelName} onChange={(_, newValue) => setModelName(newValue!)} slotProps={{ popup: { className: 'bg-whitesmoke border border-gold w-auto' } }}>
+                {supportedModels.map((model) => (
+                  <Option key={model} value={model}>{model}</Option>
+                ))}
+              </Select>
+
+
+            </div>
+          </form>
+        </div>
         <QueryTemplateForm content={content} />
         <ChatTemplateForm content={content} />
       </div>
-    </div>
+    </LightBorderedDiv>
   );
 };
 
@@ -157,9 +148,11 @@ const TextAreaFieldGroup = ({ label, currentVal, onChange, initialVal }: {
   }, [initialVal, lastInitialVal, onChange]);
 
   return (
-    <div className="field-group">
-      <label>{label}</label>
-      <textarea value={currentVal} onChange={(e) => { onChange(e.target.value) }} />
+    <div className="flex flex-col my-2">
+      <div className="flex flex-row">
+        <label className="font-semibold text-blue">{label}</label>
+      </div>
+      <TextArea value={currentVal} onChange={(e) => { onChange(e.target.value); }} />
     </div>
   );
 };
@@ -175,15 +168,32 @@ const QueryTemplateForm = ({ content }: { content: Content }) => {
   };
 
   return (
-    <form id="queryTemplateForm" onSubmit={handleSubmit}>
-      <H4 text="Query prompts" />
-      <div className="field-group">
-        <TextAreaFieldGroup label="Question answering:" currentVal={newQaTemplate} onChange={setQATemplate} initialVal={content.query_prompts.text_qa_template} />
-      </div>
-      <div className="field-group">
-        <TextAreaFieldGroup label="Use more context to refine:" currentVal={refineTemplate} onChange={setRefineTemplate} initialVal={content.query_prompts.refine_template} />
-      </div>
+    <form id="queryTemplateForm" onSubmit={handleSubmit} className="my-4 bg-whitesmoke p-2">
+      <H4 extraClasses={["underline"]} text="Query prompts" />
+      <TextAreaFieldGroup label="Question answering:" currentVal={newQaTemplate} onChange={setQATemplate} initialVal={content.query_prompts.text_qa_template} />
+      <TextAreaFieldGroup label="Use more context to refine:" currentVal={refineTemplate} onChange={setRefineTemplate} initialVal={content.query_prompts.refine_template} />
+
       <SubmitButton text="Update query prompts" />
+    </form>
+  );
+}
+
+
+const ChatTemplateForm = ({ content }: { content: Content }) => {
+  const [contextPrompt, setContextPrompt] = useState(content.chat_prompts.context_prompt);
+  const [condensePrompt, setCondensePrompt] = useState(content.chat_prompts.condense_prompt);
+
+  const handleSubmit = (event: { preventDefault: () => void; }) => {
+    event.preventDefault();
+    return jsonRequestThenReload('/api/update-chat-prompts', { context_prompt: contextPrompt, condense_prompt: condensePrompt });
+  };
+
+  return (
+    <form id="chatTemplateForm" onSubmit={handleSubmit} className="my-4 bg-whitesmoke p-2">
+      <H4 extraClasses={["underline"]} text="Chat prompts" />
+      <TextAreaFieldGroup label="Complete next chat:" currentVal={contextPrompt} onChange={setContextPrompt} initialVal={content.chat_prompts.context_prompt} />
+      <TextAreaFieldGroup label="Build a question based on history & context" currentVal={condensePrompt} onChange={setCondensePrompt} initialVal={content.chat_prompts.condense_prompt} />
+      <SubmitButton text="Update chat prompts" />
     </form>
   );
 }
@@ -211,42 +221,24 @@ const TryLLMBlock = () => {
       });
   };
 
-  return (<div className="content-block">
-    <div className="content-pane">
-      <H2 text="Try a single query:" />
-      <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
-    </div>
-    <div className="content-pane">
-      <H2 text="Try a chat" />
-      <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
-    </div>
-  </div>);
-}
-
-const ChatTemplateForm = ({ content }: { content: Content }) => {
-  const [contextPrompt, setContextPrompt] = useState(content.chat_prompts.context_prompt);
-  const [condensePrompt, setCondensePrompt] = useState(content.chat_prompts.condense_prompt);
-
-  const handleSubmit = (event: { preventDefault: () => void; }) => {
-    event.preventDefault();
-    return jsonRequestThenReload('/api/update-chat-prompts', { context_prompt: contextPrompt, condense_prompt: condensePrompt });
-  };
-
   return (
-    <form id="chatTemplateForm" onSubmit={handleSubmit}>
-      <H4 text="Chat prompts" />
-      <TextAreaFieldGroup label="Complete next chat:" currentVal={contextPrompt} onChange={setContextPrompt} initialVal={content.chat_prompts.context_prompt} />
-      <TextAreaFieldGroup label="Build a question based on history & context" currentVal={condensePrompt} onChange={setCondensePrompt} initialVal={content.chat_prompts.condense_prompt} />
-      <SubmitButton text="Update chat prompts" />
-    </form>
-  );
+    <ContentBlockDiv extraClasses={["m-4", "flex", "flex-row", "space-x-8"]}>
+      <LightBorderedDiv extraClasses={["w-1/2"]}>
+        <H2 text="Try a single query:" />
+        <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
+      </LightBorderedDiv>
+      <LightBorderedDiv extraClasses={["w-1/2"]}>
+        <H2 text="Try a chat" />
+        <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+      </LightBorderedDiv>
+    </ContentBlockDiv>);
 }
 
 const RetrievalEvaluation = () => {
   return (
-    <div className="content-pane single-pane">
-      <a href="/evaluation/"><H2 text="Retrieval evaluation" /></a>
-    </div>
+    <LightBorderedDiv>
+      <a className="text-blue" href="/evaluation/"><H2 text="Retrieval evaluation" /></a>
+    </LightBorderedDiv>
   );
 };
 

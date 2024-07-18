@@ -1,0 +1,53 @@
+import { useState } from 'react';
+import chevLUrl from './assets/chevron_left.svg';
+import chevRUrl from './assets/chevron_right.svg';
+
+const PaginationControls = ({ count, page, handleChangePage, rowsPerPage }: { count: number, page: number, handleChangePage: (newPage: number) => void, rowsPerPage: number }) => {
+    const numPages = Math.ceil(count / rowsPerPage);
+    const currentPageText = `${page * rowsPerPage + 1}-${Math.min((page + 1) * rowsPerPage, count)} of ${count}`;
+    return (
+        <td>
+            <div className='flex flex-row content-center justify-center'>
+                <button className="bg-gray-panel-bg disabled:bg-whitesmoke" onClick={() => handleChangePage(Math.max(0, page - 1))} disabled={page === 0}>
+                    <img src={chevLUrl} alt='Prev' /></button>
+                <span className="mx-1">{currentPageText}</span>
+                <button className="bg-gray-panel-bg disabled:bg-whitesmoke" onClick={() => handleChangePage(Math.min(numPages - 1, page + 1))} disabled={page === numPages - 1}><img src={chevRUrl} alt='Next'></img> </button>
+            </div>
+        </td>
+    );
+}
+
+export const FileTable = ({ files }: { files: string[] }) => {
+    const [page, setPage] = useState(0);
+    const handleChangePage = (newPage: number) => {
+        setPage(newPage);
+    };
+    const rowsPerPage = 10;
+    // Sort the files before we slice into pages
+    const all_files = [...files];
+    all_files.sort();
+    const currentPage = all_files.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+    return (
+        <table className="w-full table-auto border-collapse border border-gray-med bg-whitesmoke">
+            <thead>
+                <tr>
+                    <th className="border border-gray-med bg-gray-med">Filename</th>
+                </tr>
+            </thead>
+            <tbody>
+                {currentPage.map((file, i) => {
+                    return (
+                        <tr key={i}>
+                            <td className="border border-gray-med">{file}</td>
+                        </tr>
+                    );
+                })}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <PaginationControls count={files.length} page={page} handleChangePage={handleChangePage} rowsPerPage={rowsPerPage} />
+                </tr>
+            </tfoot>
+        </table>
+    );
+}

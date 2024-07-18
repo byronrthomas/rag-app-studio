@@ -24,7 +24,7 @@ export const ChatForm = ({ prevMessages, contexts, handleSubmitChat }: { prevMes
                 {prevMessages.map((message, index) => (
                     <ExistingMsgPanel key={index} message={message} />))}
                 <YouMsgPanel value={nextMessage.content} onChange={(e) => handleMessageChange(e.target.value)} />
-                <SubmitButton text="Send" />
+                <SubmitButton extraClasses={["my-4"]} text="Send" />
             </LightBorderedDiv>
             <ContextDebugPanel contexts={contexts} />
         </form>
