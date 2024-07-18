@@ -49,7 +49,7 @@ export const KnowledgeBasePanel = ({ content, allowUpload }: { content: Content,
                         {uploadShown &&
                             (<form id="fileUploadForm" onSubmit={handleFileUpload}>
                                 <div className="flex flex-row justify-between content-center items-center">
-                                    <input className="w-96" type="file" onChange={(e) => setFile(e.target.files![0])} />
+                                    <input className="w-96 hover:cursor-pointer" type="file" onChange={(e) => setFile(e.target.files![0])} />
                                     <SubmitButton disabled={!file} text="Upload" />
                                 </div>
                             </form>)}
