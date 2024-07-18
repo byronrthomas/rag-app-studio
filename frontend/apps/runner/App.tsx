@@ -13,6 +13,7 @@ import { ContentBlockDiv, LightBorderedDiv } from '@common/components/Divs';
 import { KnowledgeBasePanel } from '@common/components/KnowledgeBasePanel';
 import { IsLoadingContext } from '@common/components/IsLoadingContext';
 import { LoadingOverlayProvider } from '@common/components/LoadingOverlayProvider';
+import { TextArea } from '@common/components/TextArea';
 
 const newOpenAIAPIRequest = () => { return { "model": "rag_model" }; }
 type openAICompletionResponseWithContexts = {
@@ -174,19 +175,22 @@ const LLM = ({ content }: { content: Content }) => {
   );
 };
 
+const LabelledReadonlyTextArea = ({ label, value }: { label: string, value: string }) => {
+  return (<div className="flex flex-col my-2">
+    <div className="flex flex-row">
+      <label className="font-semibold text-blue">{label}</label>
+    </div>
+    <TextArea extraClasses={["bg-gray-dark/30"]} value={value} disabled />
+  </div>)
+}
 
 const QueryTemplatePanel = ({ content }: { content: Content }) => {
   return (
-    <div id="queryTemplateForm">
-      <H4 text="Query prompts" />
-      <div className="field-group">
-        <label>Question answering:</label>
-        <textarea value={content.query_prompts.text_qa_template} disabled />
-      </div>
-      <div className="field-group">
-        <label>Refine template:</label>
-        <textarea value={content.query_prompts.refine_template} disabled />
-      </div>
+    <div id="queryTemplateForm" className="my-4 bg-whitesmoke p-2">
+      <H4 extraClasses={["underline"]} text="Query prompts" />
+      <LabelledReadonlyTextArea label="Question answering:" value={content.query_prompts.text_qa_template} />
+      <LabelledReadonlyTextArea label="Use more context to refine:" value={content.query_prompts.refine_template} />
+
     </div>
   );
 }
@@ -195,16 +199,10 @@ const QueryTemplatePanel = ({ content }: { content: Content }) => {
 
 const ChatTemplatePanel = ({ content }: { content: Content }) => {
   return (
-    <div id="chatTemplateForm">
-      <H4 text="Chat prompts" />
-      <div className="field-group">
-        <label>Complete next chat:</label>
-        <textarea value={content.chat_prompts.context_prompt} disabled />
-      </div>
-      <div className="field-group">
-        <label>Build a question based on history & context:</label>
-        <textarea value={content.chat_prompts.condense_prompt} disabled />
-      </div>
+    <div id="chatTemplateForm" className="my-4 bg-whitesmoke p-2">
+      <H4 extraClasses={["underline"]} text="Chat prompts" />
+      <LabelledReadonlyTextArea label="Complete next chat:" value={content.chat_prompts.context_prompt} />
+      <LabelledReadonlyTextArea label="Build a question based on history & context:" value={content.chat_prompts.condense_prompt} />
     </div>
   );
 }
