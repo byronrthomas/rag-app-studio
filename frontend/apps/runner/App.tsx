@@ -115,6 +115,7 @@ const UseLLMBlock = () => {
     { role: 'system', content: 'You are a helpful assistant.' },
   ]);
   const [chatContexts, setChatContexts] = useState<ContextRecord[]>([]);
+  const [tabIndex, setTabIndex] = useState(1);
   const setSubmitting = useContext(IsLoadingContext);
 
   const handleSubmitQuery = async (prompt: string) => {
@@ -134,13 +135,15 @@ const UseLLMBlock = () => {
     setChatContexts(typedData.choices[0].contexts);
   };
 
+  const nonSelectedTabClasses = "border-2 p-2 bg-gray-panel-bg";
+  const selectedTabClasses = "border-2 p-2 bg-gold";
   return (<div className="flex m-4">
     <div className='w-full'>
 
-      <Tabs defaultValue={1}>
+      <Tabs value={tabIndex} onChange={(_, newVal) => { setTabIndex(newVal as number) }}>
         <TabsList>
-          <Tab value={1} className="border-2 p-2 bg-gray-panel-bg" style={{ borderBottomStyle: "none" }}><H2 text="Chat" /></Tab>
-          <Tab value={2} className="border-2 p-2 mx-2 bg-gray-panel-bg" style={{ borderBottomStyle: "none" }}><H2 text="One-off query" /></Tab>
+          <Tab value={1} className={tabIndex == 1 ? selectedTabClasses : nonSelectedTabClasses} style={{ borderBottomStyle: "none" }}><H2 text="Chat" /></Tab>
+          <Tab value={2} className={(tabIndex == 2 ? selectedTabClasses : nonSelectedTabClasses) + " mx-2"} style={{ borderBottomStyle: "none" }}><H2 text="One-off query" /></Tab>
         </TabsList>
         <ContentBlockDiv>
           <TabPanel value={1}>
@@ -154,7 +157,7 @@ const UseLLMBlock = () => {
       </Tabs>
     </div>
 
-  </div>
+  </div >
   );
 }
 
