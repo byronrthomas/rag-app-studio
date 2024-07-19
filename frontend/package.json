@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@mui/base": "^5.0.0-beta.40",
+    "@rpldy/upload-button": "^1.8.1",
+    "@rpldy/uploady": "^1.8.1",
     "js-cookie": "^3.0.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

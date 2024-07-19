@@ -1,30 +1,38 @@
 import { buildUrl } from "@common/api";
 import { Content } from "@common/types";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { LightBorderedDiv } from "./Divs";
 import { H2 } from "./Headers";
 import { FileTable } from "./FileTable";
-import { SubmitButton } from "./SubmitButton";
 import { SpinnerOverlay } from "./SpinnerOverlay";
+import Uploady, { Batch, UPLOADER_EVENTS } from "@rpldy/uploady";
+import UploadButton from "@rpldy/upload-button";
+import { primaryButtonClasses } from "./PrimaryButton";
 
 export const KnowledgeBasePanel = ({ content, allowUpload }: { content: Content, allowUpload?: boolean }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [file, setFile] = useState<File | null>(null);
 
     const uploadShown = allowUpload ?? false;
 
-    const handleFileUpload = (event: { preventDefault: () => void; }) => {
-        event.preventDefault();
-        setIsSubmitting(true);
-        const formData = new FormData();
-        formData.append('file', file!);
-        fetch(buildUrl('/upload'), {
-            method: 'POST',
-            body: formData,
-        }).then(() => {
+    const listeners = useMemo(() => ({
+        [UPLOADER_EVENTS.BATCH_START]: (batch: Batch) => {
+            setIsSubmitting(true);
+            console.log(`Uploading - Batch Start - ${batch.id} - item count = ${batch.items.length}`);
+        },
+        [UPLOADER_EVENTS.BATCH_FINALIZE]: (batch: Batch) => {
+            setIsSubmitting(false);
+            console.log(`Uploading - Batch Finish - ${batch.id} - item count = ${batch.items.length}`);
+        },
+        [UPLOADER_EVENTS.BATCH_ERROR]: (batch: Batch) => {
+            alert(`Error: only uploaded ${batch.completed} items. Please adjust your request and try again.`);
+        },
+
+        [UPLOADER_EVENTS.BATCH_FINISH]: (batch: Batch) => {
+            setIsSubmitting(false);
+            console.log(`Uploading - Batch Finish - ${batch.id} - item count = ${batch.items.length}`);
             window.location.reload();
-        }).catch((error) => { setIsSubmitting(false); console.error('Error from upload:', error); alert((`Error: ${error}. Please adjust your request and try again.`)); });
-    };
+        }
+    }), []);
 
     // const dummyFiles = [];
     // for (let i = 0; i < 60; i++) {
@@ -47,12 +55,16 @@ export const KnowledgeBasePanel = ({ content, allowUpload }: { content: Content,
                     <div className="my-2">
                         <FileTable files={content.files} />
                         {uploadShown &&
-                            (<form id="fileUploadForm" onSubmit={handleFileUpload}>
-                                <div className="flex flex-row justify-between content-center items-center">
-                                    <input className="w-96 hover:cursor-pointer" type="file" onChange={(e) => setFile(e.target.files![0])} />
-                                    <SubmitButton disabled={!file} text="Upload" />
-                                </div>
-                            </form>)}
+                            (<div className="flex flex-row justify-between my-2">
+                                <Uploady listeners={listeners} destination={{ url: buildUrl("/api/upload") }} >
+                                    <UploadButton className={primaryButtonClasses} text="Upload file(s)" />
+                                </Uploady>
+                                <Uploady listeners={listeners} destination={{ url: buildUrl("/api/upload") }} webkitdirectory>
+                                    <UploadButton className={primaryButtonClasses} text="Upload folder" />
+                                </Uploady>
+
+                            </div>
+                            )}
                     </div>
                 </div>
             </LightBorderedDiv>
