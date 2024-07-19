@@ -9,7 +9,7 @@ from llama_index.core.prompts.default_prompts import (
 )
 
 DEFAULT_LLM_MODEL = "mistralai/Mistral-7B-Instruct-v0.1"
-DEFAULT_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
+DEFAULT_EMBEDDING_MODEL = "BAAI/bge-base-en-v1.5"
 DEFAULT_APP_NAME = "RAG Studio Application"
 
 
