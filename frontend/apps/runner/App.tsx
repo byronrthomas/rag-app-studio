@@ -16,7 +16,8 @@ import { LoadingOverlayProvider } from '@common/components/LoadingOverlayProvide
 import { TextArea } from '@common/components/TextArea';
 import { Select, Option } from '@mui/base';
 import { getUserId } from './userId';
-import { DEFAULT_MODEL_PARAMS, ModelParamsPanel } from '@common/components/chatbot/ModelParamsPanel';
+import { ModelParamsPanel } from '@common/components/chatbot/ModelParamsPanel';
+import { DEFAULT_MODEL_PARAMS, encodeForTransports as encodeForTransport, findParamIssues } from '@common/components/chatbot/ModelParams';
 
 const newOpenAIAPIRequest = () => { return { "model": "rag_model" }; }
 type openAICompletionResponseWithContexts = {
@@ -161,6 +162,62 @@ const ChatHistoryOptions = ({ chatHistories, chatHistoryIndex, setChatHistoryInd
   </Select>);
 }
 
+type ChatInterfaceBlockProps = {
+  messages: ChatMessage[],
+  chatContexts: ContextRecord[],
+  handleSubmitChat: (messagesToSend: ChatMessage[], modelParams: Map<string, number>) => void,
+}
+
+const ChatInterfaceBlock = ({ messages, chatContexts, handleSubmitChat }: ChatInterfaceBlockProps) => {
+  const [modelParams, setModelParams] = useState(DEFAULT_MODEL_PARAMS);
+
+  const onChatSubmitted = (messagesToSend: ChatMessage[]) => {
+    const paramIssues = findParamIssues(modelParams);
+    if (paramIssues.length > 0) {
+      alert('Please correct the following issues with the inference settings: ' + paramIssues.join(', '));
+      return;
+    }
+    handleSubmitChat(messagesToSend, encodeForTransport(modelParams));
+  }
+
+  return (<div className="flex flex-row gap-2">
+    <div className="w-2/3">
+      <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={onChatSubmitted} key={messages.length} />
+    </div>
+    <div className="w-1/3">
+      <ModelParamsPanel modelParams={modelParams} onModelParamsChange={setModelParams} />
+    </div>
+  </div>)
+}
+
+type QueryInterfaceBlockProps = {
+  lastCompletion: string,
+  queryContexts: ContextRecord[],
+  handleSubmitQuery: (prompt: string, modelParams: Map<string, number>) => void,
+}
+
+const QueryInterfaceBlock = ({ lastCompletion, queryContexts, handleSubmitQuery }: QueryInterfaceBlockProps) => {
+  const [modelParams, setModelParams] = useState(DEFAULT_MODEL_PARAMS);
+
+  const onQuerySubmitted = (prompt: string) => {
+    const paramIssues = findParamIssues(modelParams);
+    if (paramIssues.length > 0) {
+      alert('Please correct the following issues with the inference settings: ' + paramIssues.join(', '));
+      return;
+    }
+    handleSubmitQuery(prompt, encodeForTransport(modelParams));
+  }
+
+  return (<div className="flex flex-row gap-2">
+    <div className="w-2/3">
+      <SingleQueryForm completion={lastCompletion} contexts={queryContexts} handleSubmit={onQuerySubmitted} />
+    </div>
+    <div className="w-1/3">
+      <ModelParamsPanel modelParams={modelParams} onModelParamsChange={setModelParams} />
+    </div>
+  </div>)
+}
+
 const UseLLMBlock = () => {
   const [completion, setCompletion] = useState('');
   const [queryContexts, setQueryContexts] = useState<ContextRecord[]>([]);
@@ -197,10 +254,19 @@ const UseLLMBlock = () => {
     setCompletion(typedData.choices[0].text);
     setQueryContexts(typedData.choices[0].contexts);
   };
-  const handleSubmitChat = async (messagesToSend: ChatMessage[]) => {
+  const handleSubmitChat = async (messagesToSend: ChatMessage[], modelParams: Map<string, number>) => {
     setSubmitting(true);
     const userDetails = userId !== '' ? { user: userId } : {};
-    const data = await jsonRequest('/v1/chat/completions?include_contexts=1', { messages: messagesToSend, ...newOpenAIAPIRequest(), ...userDetails });
+    console.log("modelParams", modelParams);
+    console.log({ ...modelParams.entries() })
+    const reqData = { messages: messagesToSend, ...newOpenAIAPIRequest(), ...userDetails };
+    for (const [key, value] of modelParams.entries()) {
+      //console.log(key, value);
+      // @ts-expect-error key-is-string
+      reqData[key] = value;
+    }
+    console.log("reqData", reqData);
+    const data = await jsonRequest('/v1/chat/completions?include_contexts=1', reqData);
     const typedData = data as openAIChatResponseWithContexts;
     setMessages([...messagesToSend, { role: 'assistant', content: typedData.choices[0].message.content }]);
     setChatContexts(typedData.choices[0].contexts);
@@ -254,19 +320,12 @@ const UseLLMBlock = () => {
                 </div>
 
               </div>
-              <div className="flex flex-row gap-2">
-                <div className="w-2/3">
-                  <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
-                </div>
-                <div className="w-1/3">
-                  <ModelParamsPanel modelParams={DEFAULT_MODEL_PARAMS} onModelParamsChange={() => { alert("Params changed") }} />
-                </div>
-              </div>
+              <ChatInterfaceBlock messages={messages} chatContexts={chatContexts} handleSubmitChat={handleSubmitChat} />
             </div>
 
           </TabPanel>
           <TabPanel value={2}>
-            <SingleQueryForm completion={completion} contexts={queryContexts} handleSubmit={handleSubmitQuery} />
+            <QueryInterfaceBlock lastCompletion={completion} queryContexts={queryContexts} handleSubmitQuery={handleSubmitQuery} />
           </TabPanel>
         </ContentBlockDiv>
       </Tabs>
