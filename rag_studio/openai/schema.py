@@ -77,20 +77,32 @@ class CommonRequestFields(BaseModel):
         )
         if self.temperature:
             llm.temperature = self.temperature
+        else:
+            llm.temperature = 0.7
         if self.n and self.n != 1:
             logger.error("Currently returning n > 1 completions is unsupported")
             # llm.n = self.n
             return "Currently returning n > 1 completions is unsupported"
         if self.presence_penalty:
             llm.presence_penalty = self.presence_penalty
+        else:
+            llm.presence_penalty = 0.0
         if self.frequency_penalty:
             llm.frequency_penalty = self.frequency_penalty
+        else:
+            llm.frequency_penalty = 0.0
         if self.top_p:
             llm.top_p = self.top_p
+        else:
+            llm.top_p = 1.0
         if self.stop:
             llm.stop = self.stop
+        else:
+            llm.stop = []
         if self.max_tokens:
             llm.max_new_tokens = self.max_tokens
+        else:
+            llm.max_new_tokens = 512
         if self.logprobs:
             # llm.logprobs = self.logprobs
             logger.error("Currently logprobs output is unsupported")
@@ -108,7 +120,13 @@ class CommonRequestFields(BaseModel):
         # best_of: Optional[int] = None,
         if self.best_of:
             llm.best_of = self.best_of
+        else:
+            llm.best_of = 1
 
+        logger.info(
+            "LLM settings after setting from request: %s",
+            {k: v for k, v in llm.__dict__.items() if not k.startswith("_")},
+        )
         return None
 
 
