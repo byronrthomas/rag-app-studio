@@ -59,7 +59,12 @@ const AppNameForm = ({ content }: {
     <>
       <ContentBlockDiv extraClasses={["m-4"]}>
         <LightBorderedDiv>
-          <H2 extraClasses={["text-red"]} text={`RAG Application: ${content.app_name}`} />
+          <div className="flex flex-row justify-between">
+            <H2 extraClasses={["text-red"]} text={`RAG Application: ${content.app_name}`} />
+            <H2 extraClasses={["text-blue", "text-none"]} text="BUILD MODE" />
+          </div>
+
+
           <form id="appNameForm" onSubmit={handleSubmit}>
             <div className="flex flex-row my-4 justify-between">
               <div className="flex flex-row gap-4">
@@ -116,7 +121,7 @@ const LLM = ({ content }: { content: Content }) => {
           <form id="llmModelForm" onSubmit={handleModelSubmit}>
             <div className="flex flex-row justify-between content-center items-center">
               <SubmitButton disabled={!modelName} text="Change" />
-              <Select className="bg-whitesmoke w-3/4 border border-gold" value={modelName} onChange={(_, newValue) => setModelName(newValue!)} slotProps={{ popup: { className: 'bg-whitesmoke border border-gold w-auto' } }}>
+              <Select className="bg-whitesmoke w-3/4 border border-blue border-2" value={modelName} onChange={(_, newValue) => setModelName(newValue!)} slotProps={{ popup: { className: 'bg-whitesmoke border border-blue border-2 w-auto' } }}>
                 {supportedModels.map((model) => (
                   <Option key={model} value={model}>{model}</Option>
                 ))}

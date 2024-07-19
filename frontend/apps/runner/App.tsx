@@ -309,8 +309,9 @@ const UseLLMBlock = () => {
 
                   <div className="flex flex-row justify-between content-center items-center my-2">
                     <div>Extend a previous chat:</div>
-                    <ChatHistoryOptions chatHistories={chatHistories} chatHistoryIndex={chatHistoryIndex} setChatHistoryIndex={loadChat} />
-
+                    <form>
+                      <ChatHistoryOptions chatHistories={chatHistories} chatHistoryIndex={chatHistoryIndex} setChatHistoryIndex={loadChat} />
+                    </form>
                   </div>
 
 
