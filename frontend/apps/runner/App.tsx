@@ -142,18 +142,22 @@ const fetchChatHistories = (userId: string) => {
 }
 
 const ChatHistoryOptions = ({ chatHistories, chatHistoryIndex, setChatHistoryIndex }: { chatHistories: ChatHistories, chatHistoryIndex: number, setChatHistoryIndex: (index: number) => void }) => {
+  const commonClasses = "bg-whitesmoke border border-blue border-2 w-192";
+
+  const popupClasses = commonClasses + " hover:cursor-pointer -z-1";
   if (chatHistories.length == 0) {
-    return <Select className="bg-whitesmoke border border-gold w-192" disabled value={-1} onChange={(_, newValue) => setChatHistoryIndex(newValue as number)} slotProps={{ popup: { className: 'bg-whitesmoke border border-gold w-192 hover:cursor-pointer -z-1', disablePortal: true } }}>
+    return <Select className={commonClasses} disabled value={-1} onChange={(_, newValue) => setChatHistoryIndex(newValue as number)} slotProps={{ popup: { className: popupClasses, disablePortal: true } }}>
       <Option key={-1} value={-1}>No chat history</Option>
     </Select>
   }
 
-  return (<Select className="bg-whitesmoke border border-gold w-192" disabled={chatHistories.length == 0} value={chatHistoryIndex} onChange={(_, newValue) => setChatHistoryIndex(newValue as number)} slotProps={{ popup: { className: 'bg-whitesmoke border border-gold w-192 hover:cursor-pointer -z-1', disablePortal: true } }}>
+  const enabledOptionClasses = "bg-whitesmoke hover:bg-blue hover:text-whitesmoke";
+  return (<Select className={commonClasses} disabled={chatHistories.length == 0} value={chatHistoryIndex} onChange={(_, newValue) => setChatHistoryIndex(newValue as number)} slotProps={{ popup: { className: popupClasses, disablePortal: true } }}>
 
     {chatHistories.map((historyRec, i) => (
-      <Option key={i} value={i}>{chatHistoryDisplay(historyRec)}</Option>
+      <Option className={enabledOptionClasses} key={i} value={i}>{chatHistoryDisplay(historyRec)}</Option>
     ))}
-    {chatHistoryIndex >= 0 && <Option key={-1} value={-1}>Begin a new chat..</Option>}
+    {chatHistoryIndex >= 0 && <Option className={enabledOptionClasses} key={-1} value={-1}>Begin a new chat..</Option>}
   </Select>);
 }
 
