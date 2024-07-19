@@ -27,10 +27,13 @@ type RetrievalEvalResult = {
 
 const LaunchAutoRunButton = ({ onResultsReturned }: { onResultsReturned: (d: RetrievalEvalResult[]) => void }) => {
   const setSubmitting = useContext(IsLoadingContext);
+  const onError = (_: unknown) => {
+    setSubmitting(false);
+  }
   const onAutoRunClicked = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    return jsonRequest('/api/evaluation/retrieval/autorun', {})
+    return jsonRequest('/api/evaluation/retrieval/autorun', {}, onError)
       .then((data) => {
         setSubmitting(false);
         onResultsReturned(data as RetrievalEvalResult[]);

@@ -48,11 +48,14 @@ const AppNameForm = ({ content }: {
 }) => {
   const [appName, setAppName] = useState('');
   const setSubmitting = useContext(IsLoadingContext);
+  const onError = (_: unknown) => {
+    setSubmitting(false);
+  }
 
   const handleSubmit = (event: { preventDefault: () => void; }) => {
     event.preventDefault();
     setSubmitting(true);
-    return jsonRequestThenReload('/api/update-app-name', { app_name: appName });
+    return jsonRequestThenReload('/api/update-app-name', { app_name: appName }, onError);
   };
 
   return (
@@ -91,14 +94,16 @@ const AppNameForm = ({ content }: {
 const LLM = ({ content }: { content: Content }) => {
   const [modelName, setModelName] = useState('');
   const setSubmitting = useContext(IsLoadingContext);
-
+  const onError = (_: unknown) => {
+    setSubmitting(false);
+  }
   const handleModelSubmit = (event: React.ChangeEvent<never>) => {
     if (!modelName) {
       return;
     }
     setSubmitting(true);
     event.preventDefault();
-    return jsonRequestThenReload('/api/update-model', { model_name: modelName });
+    return jsonRequestThenReload('/api/update-model', { model_name: modelName }, onError);
   };
 
   const supportedModels = [
@@ -169,12 +174,15 @@ const QueryTemplateForm = ({ content }: { content: Content }) => {
   const [newQaTemplate, setQATemplate] = useState(content.query_prompts.text_qa_template);
   const [refineTemplate, setRefineTemplate] = useState(content.query_prompts.refine_template);
   const setSubmitting = useContext(IsLoadingContext);
+  const onError = (_: unknown) => {
+    setSubmitting(false);
+  }
 
   const handleSubmit = (event: React.ChangeEvent<never>) => {
     event.preventDefault();
     setSubmitting(true);
 
-    return jsonRequestThenReload('/api/update-query-prompts', { text_qa_template: newQaTemplate, refine_template: refineTemplate });
+    return jsonRequestThenReload('/api/update-query-prompts', { text_qa_template: newQaTemplate, refine_template: refineTemplate }, onError);
   };
 
   return (
@@ -193,11 +201,14 @@ const ChatTemplateForm = ({ content }: { content: Content }) => {
   const [contextPrompt, setContextPrompt] = useState(content.chat_prompts.context_prompt);
   const [condensePrompt, setCondensePrompt] = useState(content.chat_prompts.condense_prompt);
   const setSubmitting = useContext(IsLoadingContext);
+  const onError = (_: unknown) => {
+    setSubmitting(false);
+  }
 
   const handleSubmit = (event: { preventDefault: () => void; }) => {
     event.preventDefault();
     setSubmitting(true);
-    return jsonRequestThenReload('/api/update-chat-prompts', { context_prompt: contextPrompt, condense_prompt: condensePrompt });
+    return jsonRequestThenReload('/api/update-chat-prompts', { context_prompt: contextPrompt, condense_prompt: condensePrompt }, onError);
   };
 
   return (
@@ -218,10 +229,13 @@ const TryLLMBlock = () => {
   ]);
   const [chatContexts, setChatContexts] = useState<ContextRecord[]>([]);
   const setSubmitting = useContext(IsLoadingContext);
+  const onError = (_: unknown) => {
+    setSubmitting(false);
+  }
 
   const handleSubmitQuery = async (prompt: string) => {
     setSubmitting(true);
-    const data = await jsonRequest('/api/try-completion', { prompt });
+    const data = await jsonRequest('/api/try-completion', { prompt }, onError);
     setSubmitting(false);
     const typedData = data as { completion: string; contexts: ContextRecord[]; };
     setCompletion(typedData.completion);
@@ -229,7 +243,7 @@ const TryLLMBlock = () => {
   };
   const handleSubmitChat = (messagesToSend: ChatMessage[]) => {
     setSubmitting(true);
-    return jsonRequest('/api/try-chat', { messages: messagesToSend })
+    return jsonRequest('/api/try-chat', { messages: messagesToSend }, onError)
       .then((data) => {
         setSubmitting(false);
         const typedData = data as { completion: string, contexts: ContextRecord[] };

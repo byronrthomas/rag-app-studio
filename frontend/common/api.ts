@@ -9,7 +9,9 @@ if (HOST !== '' && HOST.endsWith('/')) {
 export function buildUrl(path: string): string {
     return `${HOST}${path}`;
 }
-export function jsonRequest(url: string, data: Record<string, unknown>): Promise<unknown> {
+
+// @ts-expect-error error-arg-is-any
+export function jsonRequest(url: string, data: Record<string, unknown>, onError: (e) => void = (_) => { }): Promise<unknown> {
     if (!(url && url.startsWith('/'))) {
         throw new Error('URL cannot be empty and must start with /');
     }
@@ -20,9 +22,12 @@ export function jsonRequest(url: string, data: Record<string, unknown>): Promise
         },
         body: JSON.stringify(data),
     }).then(response => response.json())
-        .catch(error => console.error('Error:', error));
-} export function jsonRequestThenReload(url: string, data: Record<string, unknown>): Promise<void> {
-    return jsonRequest(url, data).then(() => {
+        .catch(error => { onError(error); alert(`Error: ${error}. Please adjust your request and try again.`) });
+}
+
+// @ts-expect-error error-arg-is-any
+export function jsonRequestThenReload(url: string, data: Record<string, unknown>, onError: (e) => void = (_) => { }): Promise<void> {
+    return jsonRequest(url, data, onError).then(() => {
         window.location.reload();
     });
 }

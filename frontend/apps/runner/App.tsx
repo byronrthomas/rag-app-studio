@@ -230,6 +230,9 @@ const UseLLMBlock = () => {
   const [chatHistories, setChatHistories] = useState<ChatHistories>([]);
   const [userId, setUserId] = useState('');
   const setSubmitting = useContext(IsLoadingContext);
+  const onError = (_: unknown) => {
+    setSubmitting(false);
+  }
 
   useEffect(() => {
     const uid = getUserId();
@@ -248,7 +251,7 @@ const UseLLMBlock = () => {
 
   const handleSubmitQuery = async (prompt: string) => {
     setSubmitting(true);
-    const data = await jsonRequest('/v1/completions?include_contexts=1', { prompt, ...newOpenAIAPIRequest() });
+    const data = await jsonRequest('/v1/completions?include_contexts=1', { prompt, ...newOpenAIAPIRequest() }, onError);
     setSubmitting(false);
     const typedData = data as openAICompletionResponseWithContexts;
     setCompletion(typedData.choices[0].text);
@@ -266,7 +269,7 @@ const UseLLMBlock = () => {
       reqData[key] = value;
     }
     console.log("reqData", reqData);
-    const data = await jsonRequest('/v1/chat/completions?include_contexts=1', reqData);
+    const data = await jsonRequest('/v1/chat/completions?include_contexts=1', reqData, onError);
     const typedData = data as openAIChatResponseWithContexts;
     setMessages([...messagesToSend, { role: 'assistant', content: typedData.choices[0].message.content }]);
     setChatContexts(typedData.choices[0].contexts);
