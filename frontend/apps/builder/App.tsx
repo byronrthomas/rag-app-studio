@@ -25,7 +25,7 @@ const App = () => {
         setContent(data);
         window.document.title = `${data.app_name} - Rag App Studio`;
       })
-      .catch(error => console.error('Error fetching initial data:', error));
+      .catch(error => { console.error('Error fetching initial data:', error); alert("Something wrong - is server working correctly, failed to fetch initial data"); });
   }, []);
 
   return (

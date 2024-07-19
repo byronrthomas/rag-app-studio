@@ -23,7 +23,7 @@ export const KnowledgeBasePanel = ({ content, allowUpload }: { content: Content,
             body: formData,
         }).then(() => {
             window.location.reload();
-        });
+        }).catch((error) => { setIsSubmitting(false); console.error('Error from upload:', error); alert((`Error: ${error}. Please adjust your request and try again.`)); });
     };
 
     // const dummyFiles = [];
