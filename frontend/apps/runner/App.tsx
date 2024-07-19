@@ -141,6 +141,22 @@ const fetchChatHistories = (userId: string) => {
     .then((data) => (data as ChatHistories));
 }
 
+const ChatHistoryOptions = ({ chatHistories, chatHistoryIndex, setChatHistoryIndex }: { chatHistories: ChatHistories, chatHistoryIndex: number, setChatHistoryIndex: (index: number) => void }) => {
+  if (chatHistories.length == 0) {
+    return <Select className="bg-whitesmoke border border-gold w-192" disabled value={-1} onChange={(_, newValue) => setChatHistoryIndex(newValue as number)} slotProps={{ popup: { className: 'bg-whitesmoke border border-gold w-192 hover:cursor-pointer -z-1', disablePortal: true } }}>
+      <Option key={-1} value={-1}>No chat history</Option>
+    </Select>
+  }
+
+  return (<Select className="bg-whitesmoke border border-gold w-192" disabled={chatHistories.length == 0} value={chatHistoryIndex} onChange={(_, newValue) => setChatHistoryIndex(newValue as number)} slotProps={{ popup: { className: 'bg-whitesmoke border border-gold w-192 hover:cursor-pointer -z-1', disablePortal: true } }}>
+
+    {chatHistories.map((historyRec, i) => (
+      <Option key={i} value={i}>{chatHistoryDisplay(historyRec)}</Option>
+    ))}
+    {chatHistoryIndex >= 0 && <Option key={-1} value={-1}>Begin a new chat..</Option>}
+  </Select>);
+}
+
 const UseLLMBlock = () => {
   const [completion, setCompletion] = useState('');
   const [queryContexts, setQueryContexts] = useState<ContextRecord[]>([]);
@@ -216,28 +232,31 @@ const UseLLMBlock = () => {
         </TabsList>
         <ContentBlockDiv>
           <TabPanel value={1}>
-            <div className="flex flex-row gap-2">
+            <div className="flex flex-col">
+              <div className="flex flex-row gap-2">
 
-              <div className="w-2/3">
+                <div className="w-2/3">
 
-                <div className="flex flex-row justify-between content-center items-center my-2">
-                  <div>Extend a previous chat:</div>
-                  <Select className="bg-whitesmoke border border-gold w-192" disabled={chatHistories.length == 0} value={chatHistoryIndex} onChange={(_, newValue) => loadChat(newValue)} slotProps={{ popup: { className: 'bg-whitesmoke border border-gold w-192 hover:cursor-pointer -z-1', disablePortal: true } }}>
-                    {chatHistories.map((historyRec, i) => (
-                      <Option key={i} value={i}>{chatHistoryDisplay(historyRec)}</Option>
-                    ))}
-                    {chatHistoryIndex >= 0 && <Option key={-1} value={-1}>Begin a new chat..</Option>}
-                  </Select>
+                  <div className="flex flex-row justify-between content-center items-center my-2">
+                    <div>Extend a previous chat:</div>
+                    <ChatHistoryOptions chatHistories={chatHistories} chatHistoryIndex={chatHistoryIndex} setChatHistoryIndex={loadChat} />
+
+                  </div>
+
+
+
+
 
                 </div>
 
-                <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
-
-
-
               </div>
-              <div className="w-1/3">
-                <ModelParamsPanel modelParams={DEFAULT_MODEL_PARAMS} onModelParamsChange={() => { alert("Params changed") }} />
+              <div className="flex flex-row gap-2">
+                <div className="w-2/3">
+                  <ChatForm prevMessages={messages} contexts={chatContexts} handleSubmitChat={handleSubmitChat} key={messages.length} />
+                </div>
+                <div className="w-1/3">
+                  <ModelParamsPanel modelParams={DEFAULT_MODEL_PARAMS} onModelParamsChange={() => { alert("Params changed") }} />
+                </div>
               </div>
             </div>
 
