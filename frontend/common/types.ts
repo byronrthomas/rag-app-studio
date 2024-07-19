@@ -3,11 +3,16 @@ export type ContextRecord = {
     filename: string;
     context: string;
 };
+
+export type FileInfo = {
+    file_name: string;
+    node_count: number;
+};
 export type Content = {
     app_name: string;
     repo_name: string;
     embed_model: string;
-    files: string[];
+    files: FileInfo[];
     last_checkpoint: string;
     query_prompts: {
         text_qa_template: string;

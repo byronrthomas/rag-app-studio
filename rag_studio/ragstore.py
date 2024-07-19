@@ -49,7 +49,14 @@ class RagStore:
 
     def list_files(self):
         doc_info_by_id = self.index.docstore.get_all_ref_doc_info()
-        return [safe_extract_filename(doc_info) for doc_info in doc_info_by_id.values()]
+        node_counts_by_file = {}
+        for doc_info in doc_info_by_id.values():
+            file_name = safe_extract_filename(doc_info)
+            node_counts_by_file[file_name] = node_counts_by_file.get(file_name, 0) + 1
+        return [
+            {"file_name": file_name, "node_count": count}
+            for file_name, count in node_counts_by_file.items()
+        ]
 
     def write_to_storage(self):
         logger.info("Persisting index to storage at %s", self.storage_path)

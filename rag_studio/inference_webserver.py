@@ -301,6 +301,9 @@ def completions(req: CompletionRequest, include_contexts: bool = False):
     )
 
 
+file_infos = rag_storage.list_files()
+
+
 @app.get("/api/data")
 def get_data():
     """API to get the data."""
@@ -310,7 +313,7 @@ def get_data():
         "llm_model": settings["model"],
         "app_name": app_name_from_settings(settings),
         "repo_name": rag_repo_id,
-        "files": rag_storage.list_files(),
+        "files": file_infos,
         "embed_model": DEFAULT_EMBEDDING_MODEL,
         "completion": "",
         "last_checkpoint": last_commit_time,
