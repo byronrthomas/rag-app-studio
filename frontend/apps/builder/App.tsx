@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, ChangeEvent } from 'react';
 import { buildUrl, jsonRequest, jsonRequestThenReload } from '@common/api';
 import '@common/styles.css';
 import { ChatMessage, Content, ContextRecord, empty_content } from '@common/types';
@@ -10,9 +10,15 @@ import { ContentBlockDiv, LightBorderedDiv } from '@common/components/Divs';
 import { TextArea } from '@common/components/TextArea';
 import { KnowledgeBasePanel } from '@common/components/KnowledgeBasePanel';
 import { Select, Option } from '@mui/base';
+import { Tab } from '@mui/base/Tab';
+import { TabsList } from '@mui/base/TabsList';
+import { TabPanel } from '@mui/base/TabPanel';
+import { Tabs } from '@mui/base/Tabs';
 import { IsLoadingContext } from '@common/components/IsLoadingContext';
 import { LoadingOverlayProvider } from '@common/components/LoadingOverlayProvider';
 import { LogFooter } from '@common/components/LogDisplay';
+import { PrimaryButton } from '@common/components/PrimaryButton';
+import { CHAT_CONDENSE_TEMPLATE, CHAT_QUESTION_TEMPLATE, QUERY_QA_TEMPLATE, QUERY_REFINE_TEMPLATE } from './promptTemplates';
 
 
 const App = () => {
@@ -95,6 +101,7 @@ const AppNameForm = ({ content }: {
 
 const LLM = ({ content }: { content: Content }) => {
   const [modelName, setModelName] = useState('');
+  const [selectedTab, setSelectedTab] = useState(1);
   const setSubmitting = useContext(IsLoadingContext);
   const onError = (_: unknown) => {
     setSubmitting(false);
@@ -115,7 +122,11 @@ const LLM = ({ content }: { content: Content }) => {
     "meta-llama/Meta-Llama-3-8B-Instruct",
     "meta-llama/Llama-2-7b-chat-hf"];
 
-
+  const commonTabClasses = "p-1 border border-green hover:cursor-pointer bg-whitesmoke";
+  const selectedTabClasses = `${commonTabClasses} underline font-semibold`;
+  const nonSelectedTabClasses = `${commonTabClasses}`;
+  const tab1Classes = selectedTab === 1 ? selectedTabClasses : nonSelectedTabClasses;
+  const tab2Classes = selectedTab === 2 ? selectedTabClasses : nonSelectedTabClasses;
   return (
     <LightBorderedDiv extraClasses={["w-1/2"]}>
       <H2 text="LLM (for generation)" />
@@ -138,8 +149,21 @@ const LLM = ({ content }: { content: Content }) => {
             </div>
           </form>
         </div>
-        <QueryTemplateForm content={content} />
-        <ChatTemplateForm content={content} />
+        <Tabs value={selectedTab} onChange={(_, newValue) => setSelectedTab(newValue as number)}>
+          <TabsList className="space-x-2">
+            <Tab className={tab1Classes} style={{ borderBottomStyle: "none" }} value={1}>Query prompts</Tab>
+            <Tab className={tab2Classes} style={{ borderBottomStyle: "none" }} value={2}>Chat prompts</Tab>
+          </TabsList>
+          <div className="bg-whitesmoke p-2 border border-green">
+            <TabPanel value={1}>
+              <QueryTemplateForm content={content} />
+            </TabPanel>
+            <TabPanel value={2}>
+              <ChatTemplateForm content={content} />
+            </TabPanel>
+          </div>
+
+        </Tabs>
       </div>
     </LightBorderedDiv>
   );
@@ -187,13 +211,23 @@ const QueryTemplateForm = ({ content }: { content: Content }) => {
     return jsonRequestThenReload('/api/update-query-prompts', { text_qa_template: newQaTemplate, refine_template: refineTemplate }, onError);
   };
 
+  const canSubmit = newQaTemplate !== content.query_prompts.text_qa_template || refineTemplate !== content.query_prompts.refine_template;
+  const canReset = newQaTemplate !== QUERY_QA_TEMPLATE || refineTemplate !== QUERY_REFINE_TEMPLATE;
+
   return (
-    <form id="queryTemplateForm" onSubmit={handleSubmit} className="my-4 bg-whitesmoke p-2">
+    <form id="queryTemplateForm" onSubmit={handleSubmit}>
       <H4 extraClasses={["underline"]} text="Query prompts" />
       <TextAreaFieldGroup label="Question answering:" currentVal={newQaTemplate} onChange={setQATemplate} initialVal={content.query_prompts.text_qa_template} />
       <TextAreaFieldGroup label="Use more context to refine:" currentVal={refineTemplate} onChange={setRefineTemplate} initialVal={content.query_prompts.refine_template} />
 
-      <SubmitButton text="Update query prompts" />
+      <div className="flex flex-row gap-4">
+        <SubmitButton text="Update query prompts" disabled={!canSubmit} />
+        <PrimaryButton text="Load default query prompts" disabled={!canReset} onClick={(e) => {
+          e.preventDefault();
+          setQATemplate(QUERY_QA_TEMPLATE);
+          setRefineTemplate(QUERY_REFINE_TEMPLATE);
+        }} />
+      </div>
     </form>
   );
 }
@@ -212,13 +246,22 @@ const ChatTemplateForm = ({ content }: { content: Content }) => {
     setSubmitting(true);
     return jsonRequestThenReload('/api/update-chat-prompts', { context_prompt: contextPrompt, condense_prompt: condensePrompt }, onError);
   };
+  const canSubmit = contextPrompt !== content.chat_prompts.context_prompt || condensePrompt !== content.chat_prompts.condense_prompt;
+  const canReset = contextPrompt !== CHAT_QUESTION_TEMPLATE || condensePrompt !== CHAT_CONDENSE_TEMPLATE;
 
   return (
-    <form id="chatTemplateForm" onSubmit={handleSubmit} className="my-4 bg-whitesmoke p-2">
+    <form id="chatTemplateForm" onSubmit={handleSubmit}>
       <H4 extraClasses={["underline"]} text="Chat prompts" />
       <TextAreaFieldGroup label="Complete next chat:" currentVal={contextPrompt} onChange={setContextPrompt} initialVal={content.chat_prompts.context_prompt} />
       <TextAreaFieldGroup label="Build a question based on history & context" currentVal={condensePrompt} onChange={setCondensePrompt} initialVal={content.chat_prompts.condense_prompt} />
-      <SubmitButton text="Update chat prompts" />
+      <div className="flex flex-row gap-4">
+        <SubmitButton text="Update chat prompts" disabled={!canSubmit} />
+        <PrimaryButton text="Load default chat prompts" disabled={!canReset} onClick={(e) => {
+          e.preventDefault();
+          setContextPrompt(CHAT_QUESTION_TEMPLATE);
+          setCondensePrompt(CHAT_CONDENSE_TEMPLATE);
+        }} />
+      </div>
     </form>
   );
 }
@@ -226,9 +269,7 @@ const ChatTemplateForm = ({ content }: { content: Content }) => {
 const TryLLMBlock = () => {
   const [completion, setCompletion] = useState('');
   const [queryContexts, setQueryContexts] = useState<ContextRecord[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'system', content: 'You are a helpful assistant.' },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatContexts, setChatContexts] = useState<ContextRecord[]>([]);
   const setSubmitting = useContext(IsLoadingContext);
   const onError = (_: unknown) => {
