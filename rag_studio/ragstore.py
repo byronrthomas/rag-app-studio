@@ -26,6 +26,9 @@ class RagStore:
         if not storage_root:
             raise ValueError("Storage root cannot be empty")
         self.storage_path = f"{storage_root}/index"
+        self._reinitialize_index(embed_model)
+
+    def _reinitialize_index(self, embed_model):
         if os.path.exists(self.storage_path):
             logger.info("Loading existing index from storage at %s", self.storage_path)
             # load the existing index
@@ -38,6 +41,13 @@ class RagStore:
         else:
             logger.info("Beginning fresh index")
             self.index = VectorStoreIndex(nodes=[], embed_model=embed_model)
+
+    def change_embedding_model(self, embed_model):
+        if self.index.docstore.docs:
+            raise ValueError(
+                "Cannot change embedding model after documents have been added"
+            )
+        self._reinitialize_index(embed_model)
 
     def add_document(self, file_path):
         reader = SimpleDirectoryReader(input_files=[file_path])

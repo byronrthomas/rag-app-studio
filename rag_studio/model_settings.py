@@ -33,6 +33,10 @@ def app_name_from_settings(settings):
     return settings.get("app_name", DEFAULT_APP_NAME)
 
 
+def embedding_model_from_settings(settings):
+    return settings.get("embedding_model", DEFAULT_EMBEDDING_MODEL)
+
+
 def read_settings(settings_path):
     with open(settings_path, "r", encoding="UTF-8") as f:
         return json.load(f)

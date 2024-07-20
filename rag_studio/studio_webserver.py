@@ -10,19 +10,17 @@ import logging
 import traceback
 
 from llama_index.core.base.llms.types import ChatMessage
-import gc
-
 
 from rag_studio import LOG_FILE_FOLDER
 from rag_studio.evaluation.retrieval import evaluate_on_auto_dataset
 from rag_studio.inference.repo_handling import infer_prefs_repo_id
 from rag_studio.log_files import tail_logs
-from rag_studio.model_builder import ModelBuilder
+from rag_studio.model_builder import ModelBuilder, free_gpu_memory
 from rag_studio.model_settings import (
-    DEFAULT_EMBEDDING_MODEL,
     DEFAULT_LLM_MODEL,
     app_name_from_settings,
     chat_prompts_from_settings,
+    embedding_model_from_settings,
     query_prompts_from_settings,
     read_settings,
 )
@@ -70,7 +68,9 @@ def apply_defaults(config_in, from_dot_env=None):
 def initial_engine(model_builder, settings):
     """Initialise the inference engine using the model builder."""
     engine = {}
-    engine["embed_model"] = model_builder.make_embedding_model(DEFAULT_EMBEDDING_MODEL)
+    engine["embed_model"] = model_builder.make_embedding_model(
+        embedding_model_from_settings(settings)
+    )
     engine["llm"] = model_builder.make_llm(settings["model"])
     return engine
 
@@ -333,7 +333,7 @@ def create_api_blueprint(config=None, model_builder=None):
     @bp.post("/update-model")
     def update_model():
         del _engine["llm"]
-        gc.collect()
+        free_gpu_memory()
         if request.json.get("clear_space") == True:
             model_builder.clear_vllm_models_folder()
 
@@ -343,6 +343,26 @@ def create_api_blueprint(config=None, model_builder=None):
 
         _engine["llm"] = model_builder.make_llm(request.json["model_name"])
         return {"message": "Model updated"}
+
+    @bp.post("/update-embedding-model")
+    def update_embedding_model():
+        if rag_storage.list_files():
+            return {
+                "message": "Cannot change embedding model after documents have been added"
+            }, 400
+        logger.info(
+            "Updating the embedding model to %s", request.json["embedding_model"]
+        )
+        settings["embedding_model"] = request.json["embedding_model"]
+        push_settings_update(config, settings)
+        del _engine["embed_model"]
+        free_gpu_memory()
+        _engine["embed_model"] = model_builder.make_embedding_model(
+            request.json["embedding_model"]
+        )
+
+        rag_storage.change_embedding_model(_engine["embed_model"])
+        return {"message": "Embedding model updated"}
 
     @bp.route("/model-name")
     def get_model_name():
@@ -416,7 +436,7 @@ def create_api_blueprint(config=None, model_builder=None):
             "app_name": app_name_from_settings(settings),
             "repo_name": config["repo_name"],
             "files": list_files_api()["files"],
-            "embed_model": DEFAULT_EMBEDDING_MODEL,
+            "embed_model": embedding_model_from_settings(settings),
             "completion": "",
             "last_checkpoint": last_checkpoint_api()["latest_change_time"],
             "chat_prompts": chat_prompts(),

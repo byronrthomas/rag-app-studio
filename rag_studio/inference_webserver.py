@@ -27,6 +27,7 @@ from rag_studio.model_settings import (
     DEFAULT_EMBEDDING_MODEL,
     app_name_from_settings,
     chat_prompts_from_settings,
+    embedding_model_from_settings,
     query_prompts_from_settings,
     read_settings,
 )
@@ -182,17 +183,21 @@ if os.path.exists(rag_storage_path):
     # Remove the directory tree at rag_storage_path, even if the dir is not empty
     shutil.rmtree(rag_storage_path)
 
-model_builder = ModelBuilder(model_download_dir)
-
 download_from_repo(rag_repo_id, rag_storage_path)
-rag_storage = RagStore(
-    rag_storage_path,
-    embed_model=model_builder.make_embedding_model(DEFAULT_EMBEDDING_MODEL),
-)
+
 # Read model settings from the downloaded repo
 model_settings_path = f"{rag_storage_path}/model_settings.json"
 settings = read_settings(model_settings_path)
 logger.info("Settings on startup: %s", settings)
+
+model_builder = ModelBuilder(model_download_dir)
+
+rag_storage = RagStore(
+    rag_storage_path,
+    embed_model=model_builder.make_embedding_model(
+        embedding_model_from_settings(settings)
+    ),
+)
 
 
 @app.route("/healthcheck")
@@ -314,7 +319,7 @@ def get_data():
         "app_name": app_name_from_settings(settings),
         "repo_name": rag_repo_id,
         "files": file_infos,
-        "embed_model": DEFAULT_EMBEDDING_MODEL,
+        "embed_model": embedding_model_from_settings(settings),
         "completion": "",
         "last_checkpoint": last_commit_time,
         "chat_prompts": chat_prompts,
