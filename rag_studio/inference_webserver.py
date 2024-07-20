@@ -246,7 +246,7 @@ def get_app_name():
 @app.get("/logs")
 def get_logs(num_lines: Union[int, None] = None):
     """API to get the logs."""
-    return tail_logs(LOG_FILE_FOLDER, num_lines or 100)
+    return {"logs": tail_logs(LOG_FILE_FOLDER, num_lines or 100)}
 
 
 @app.get("/chat-history/{user_id}")
