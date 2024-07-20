@@ -39,7 +39,7 @@ const App = () => {
     <LoadingOverlayProvider>
       <AppNameForm content={content} />
       <ContentBlockDiv extraClasses={["m-4 flex flex-row space-x-8"]}>
-        <KnowledgeBasePanel content={content} allowUpload={true} />
+        <KnowledgeBasePanel content={content} allowEdits={true} />
         <LLM content={content} />
       </ContentBlockDiv>
       <TryLLMBlock />
