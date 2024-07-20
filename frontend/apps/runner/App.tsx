@@ -76,10 +76,12 @@ const App = () => {
     <LoadingOverlayProvider>
       <AppNamePanel content={content} />
       <UseLLMBlock />
-      <ContentBlockDiv extraClasses={["m-4 flex flex-row space-x-8"]}>
+      <ContentBlockDiv extraClasses={["m-4"]}>
         <H2 text="App configuration details (for info only)" />
-        <KnowledgeBasePanel content={content} />
-        <LLM content={content} />
+        <div className="my-2 flex flex-row space-x-8">
+          <KnowledgeBasePanel content={content} />
+          <LLM content={content} />
+        </div>
       </ContentBlockDiv>
       <LogFooter logUrl="/logs" />
     </LoadingOverlayProvider>
@@ -155,7 +157,7 @@ const ChatHistoryOptions = ({ chatHistories, chatHistoryIndex, setChatHistoryInd
   }
 
   const enabledOptionClasses = "bg-whitesmoke hover:bg-blue hover:text-whitesmoke";
-  return (<Select className={commonClasses} disabled={chatHistories.length == 0} value={chatHistoryIndex} onChange={(_, newValue) => setChatHistoryIndex(newValue as number)} slotProps={{ popup: { className: popupClasses, disablePortal: true } }}>
+  return (<Select className={commonClasses + " mx-1"} disabled={chatHistories.length == 0} value={chatHistoryIndex} onChange={(_, newValue) => setChatHistoryIndex(newValue as number)} slotProps={{ popup: { className: popupClasses, disablePortal: true } }}>
 
     {chatHistories.map((historyRec, i) => (
       <Option className={enabledOptionClasses} key={i} value={i}>{chatHistoryDisplay(historyRec)}</Option>
