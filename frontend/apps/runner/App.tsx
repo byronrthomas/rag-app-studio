@@ -18,6 +18,7 @@ import { Select, Option } from '@mui/base';
 import { getUserId } from './userId';
 import { ModelParamsPanel } from '@common/components/chatbot/ModelParamsPanel';
 import { DEFAULT_MODEL_PARAMS, encodeForTransports as encodeForTransport, findParamIssues } from '@common/components/chatbot/ModelParams';
+import { LogFooter } from '@common/components/LogDisplay';
 
 const newOpenAIAPIRequest = () => { return { "model": "rag_model" }; }
 type openAICompletionResponseWithContexts = {
@@ -76,10 +77,11 @@ const App = () => {
       <AppNamePanel content={content} />
       <UseLLMBlock />
       <ContentBlockDiv extraClasses={["m-4 flex flex-row space-x-8"]}>
-
+        <H2 text="App configuration details (for info only)" />
         <KnowledgeBasePanel content={content} />
         <LLM content={content} />
       </ContentBlockDiv>
+      <LogFooter logUrl="/logs" />
     </LoadingOverlayProvider>
   );
 };
@@ -221,9 +223,7 @@ const QueryInterfaceBlock = ({ lastCompletion, queryContexts, handleSubmitQuery 
 const UseLLMBlock = () => {
   const [completion, setCompletion] = useState('');
   const [queryContexts, setQueryContexts] = useState<ContextRecord[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'system', content: 'You are a helpful assistant.' },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatContexts, setChatContexts] = useState<ContextRecord[]>([]);
   const [tabIndex, setTabIndex] = useState(1);
   const [chatHistoryIndex, setChatHistoryIndex] = useState(-1);
@@ -286,7 +286,7 @@ const UseLLMBlock = () => {
   const loadChat = (index: number | null) => {
     if (index === null || index < 0) {
       setChatHistoryIndex(-1);
-      setMessages([{ role: 'system', content: 'You are a helpful assistant.' }]);
+      setMessages([]);
       return;
     }
     setChatHistoryIndex(index);

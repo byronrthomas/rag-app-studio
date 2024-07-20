@@ -3,6 +3,7 @@ import '@common/styles.css';
 import { jsonRequest } from '@common/api';
 import { IsLoadingContext } from '@common/components/IsLoadingContext';
 import { LoadingOverlayProvider } from '@common/components/LoadingOverlayProvider';
+import { Popper } from '@mui/base/Popper';
 
 // Response type looks like:
 // {
@@ -51,39 +52,77 @@ const App = () => {
   return (
     <LoadingOverlayProvider>
       <LaunchAutoRunButton onResultsReturned={setResults} />
-      <ResultsTable results={results} />
+      <div className='my-4'>
+        <ResultsTable results={results} />
+      </div>
     </LoadingOverlayProvider>
   );
 };
 
+const HeaderCell = ({ text }: { text: string }) => {
+  return <th className="border border-gray-dark bg-gray-med">{text}</th>;
+}
+
+const DataCell = ({ text }: { text: string }) => {
+  return <td className="border border-gray-med">{text}</td>;
+}
+
+const shortenText = (text: string) => {
+  return text.length > 50 ? text.substring(0, 50) + "..." : text;
+}
+const LongTextDataCell = ({ fullText, onClick }: { fullText: string, onClick: (e: React.MouseEvent<HTMLElement>, text: string) => void }) => {
+  const text = shortenText(fullText);
+  const clickable = (text != fullText) || text.indexOf("\n") > -1;
+  const classes = clickable ? "border border-gray-med hover:cursor-pointer" : "border border-gray-med";
+  return <td className={classes} onClick={(e) => onClick(e, fullText)}>{text}</td>;
+}
+
 const ResultsTable = ({ results }: { results: RetrievalEvalResult[] }) => {
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [fullText, setFullText] = React.useState("");
+  const formatNumber = (num: number) => {
+    return num.toFixed(3);
+  }
+
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>, fullText: string) => {
+    setAnchorEl(anchorEl ? null : event.currentTarget);
+    setFullText(fullText);
+  };
+
+  const popperOpen = Boolean(anchorEl);
+  const id = popperOpen ? 'simple-popper' : undefined;
   return (
-    <table>
+    <><table className="w-full table-auto border-collapse border border-gray-med bg-whitesmoke">
       <thead>
         <tr>
-          <th>Query</th>
-          <th>Expected</th>
-          <th>Retrieved 0</th>
-          <th>Retrieved 1</th>
-          <th>Precision</th>
-          <th>Recall</th>
-          <th>Hit rate</th>
+          <HeaderCell text="Query" />
+          <HeaderCell text="Expected" />
+          <HeaderCell text="Retrieved 0" />
+          <HeaderCell text="Retrieved 1" />
+          <HeaderCell text="Precision" />
+          <HeaderCell text="Recall" />
+          <HeaderCell text="Hit rate" />
         </tr>
       </thead>
       <tbody>
-        {results.map((result, i) => (
-          <tr key={i}>
-            <td>{result.query}</td>
-            <td>{result.expected_texts[0]}</td>
-            <td>{result.retrieved_texts[0]}</td>
-            <td>{result.retrieved_texts[1]}</td>
-            <td>{result.metrics.precision}</td>
-            <td>{result.metrics.recall}</td>
-            <td>{result.metrics.hit_rate}</td>
-          </tr>
-        ))}
+        {results.map((result, i) => {
+          return (
+            <tr key={i}>
+              <LongTextDataCell fullText={result.query} onClick={handleClick} />
+              <LongTextDataCell fullText={result.expected_texts[0]} onClick={handleClick} />
+              <LongTextDataCell fullText={result.retrieved_texts[0]} onClick={handleClick} />
+              <LongTextDataCell fullText={result.retrieved_texts[1]} onClick={handleClick} />
+              <DataCell text={formatNumber(result.metrics.precision)} />
+              <DataCell text={formatNumber(result.metrics.recall)} />
+              <DataCell text={formatNumber(result.metrics.hit_rate)} />
+            </tr>
+          );
+        })}
       </tbody>
-    </table>
+    </table><Popper id={id} open={popperOpen} anchorEl={anchorEl}>
+        <div className="p-2 bg-gray-med text-whitesmoke">{fullText}</div>
+      </Popper></>
   );
 }
 

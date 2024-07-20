@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, ChangeEvent } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { buildUrl, jsonRequest, jsonRequestThenReload } from '@common/api';
 import '@common/styles.css';
 import { ChatMessage, Content, ContextRecord, empty_content } from '@common/types';
