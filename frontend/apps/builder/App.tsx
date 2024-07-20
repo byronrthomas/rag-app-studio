@@ -43,9 +43,8 @@ const App = () => {
         <LLM content={content} />
       </ContentBlockDiv>
       <TryLLMBlock />
-      <ContentBlockDiv extraClasses={["m-4"]}>
-        <RetrievalEvaluation />
-      </ContentBlockDiv>
+
+      <RetrievalEvaluation />
       <LogFooter logUrl="/api/logs" />
     </LoadingOverlayProvider>
   );
@@ -310,9 +309,11 @@ const TryLLMBlock = () => {
 
 const RetrievalEvaluation = () => {
   return (
-    <LightBorderedDiv>
-      <a className="text-blue" href="/evaluation/"><H2 text="Retrieval evaluation" /></a>
-    </LightBorderedDiv>
+    <div className={`border-2 p-4 m-4 bg-gray-panel-bg`}>
+      <a className="text-blue" href="/evaluation/"><H4 text="Retrieval evaluation" /></a>
+    </div>
+
+
   );
 };
 
