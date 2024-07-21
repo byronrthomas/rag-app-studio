@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
-LABEL org.opencontainers.image.authors="byron@humane-it.com"
-LABEL description="The builder application of RAG App Studio"
 
 # Use a build argument to specify the base image tag
 ARG BASE_IMAGE_TAG=latest
 FROM byronthomas712/trial-container:${BASE_IMAGE_TAG}
+LABEL org.opencontainers.image.authors="byron@humane-it.com"
+LABEL description="The builder application of RAG App Studio"
 
 # Set the working directory in the container
 WORKDIR /app
