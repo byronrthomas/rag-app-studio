@@ -277,7 +277,7 @@ def chat_completions(req: ChatCompletionRequest, include_contexts: bool = False)
     problem_str = req.set_model_params_from_request(llm)
     if problem_str:
         return HTTPException(status_code=400, detail=problem_str)
-    result = chat_engine.chat(messages[-1], chat_history=history)
+    result = chat_engine.chat(messages[-1]["content"], chat_history=history)
     if req.user:
         logger.info("Tracking chat history for user %s", req.user)
         chat_history.update_user_chat_history(
