@@ -253,7 +253,7 @@ const ChatTemplateForm = ({ content }: { content: Content }) => {
     <form id="chatTemplateForm" onSubmit={handleSubmit}>
       <H4 extraClasses={["underline"]} text="Chat prompts" />
       <TextAreaFieldGroup label="Complete next chat:" currentVal={contextPrompt} onChange={setContextPrompt} initialVal={content.chat_prompts.context_prompt} />
-      <TextAreaFieldGroup label="Reframe a question using history" currentVal={condensePrompt} onChange={setCondensePrompt} initialVal={content.chat_prompts.condense_prompt} />
+      <TextAreaFieldGroup label="Reframe a question using history:" currentVal={condensePrompt} onChange={setCondensePrompt} initialVal={content.chat_prompts.condense_prompt} />
       <div className="flex flex-row gap-4">
         <SubmitButton text="Update chat prompts" disabled={!canSubmit} />
         <PrimaryButton text="Load default chat prompts" disabled={!canReset} onClick={(e) => {
