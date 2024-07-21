@@ -151,7 +151,7 @@ const ChatHistoryOptions = ({ chatHistories, chatHistoryIndex, setChatHistoryInd
 
   const popupClasses = commonClasses + " hover:cursor-pointer -z-1";
   if (chatHistories.length == 0) {
-    return <Select className={commonClasses} disabled value={-1} onChange={(_, newValue) => setChatHistoryIndex(newValue as number)} slotProps={{ popup: { className: popupClasses, disablePortal: true } }}>
+    return <Select className={commonClasses + " mx-1"} disabled value={-1} onChange={(_, newValue) => setChatHistoryIndex(newValue as number)} slotProps={{ popup: { className: popupClasses, disablePortal: true } }}>
       <Option key={-1} value={-1}>No chat history</Option>
     </Select>
   }
@@ -295,15 +295,15 @@ const UseLLMBlock = () => {
     setMessages(chatHistories[index].messages);
   }
 
-  const nonSelectedTabClasses = "border-2 p-2 bg-gray-panel-bg";
-  const selectedTabClasses = "border-2 p-2 bg-gold";
+  const nonSelectedTabClasses = "text-2xl border-2 p-2 bg-gray-med text-whitesmoke border-gray-med";
+  const selectedTabClasses = "text-2xl underline font-bold border-2 p-2 bg-gray-panel-bg";
   return (<div className="flex m-4">
     <div className='w-full'>
 
       <Tabs value={tabIndex} onChange={(_, newVal) => { setTabIndex(newVal as number) }}>
         <TabsList>
-          <Tab value={1} className={tabIndex == 1 ? selectedTabClasses : nonSelectedTabClasses} style={{ borderBottomStyle: "none" }}><H2 text="Chat" /></Tab>
-          <Tab value={2} className={(tabIndex == 2 ? selectedTabClasses : nonSelectedTabClasses) + " mx-2"} style={{ borderBottomStyle: "none" }}><H2 text="One-off query" /></Tab>
+          <Tab value={1} className={tabIndex == 1 ? selectedTabClasses : nonSelectedTabClasses} style={{ borderBottomStyle: "none" }}><div>Chat</div></Tab>
+          <Tab value={2} className={(tabIndex == 2 ? selectedTabClasses : nonSelectedTabClasses) + " mx-2"} style={{ borderBottomStyle: "none" }}><div>One-off query</div></Tab>
         </TabsList>
         <ContentBlockDiv>
           <TabPanel value={1}>
