@@ -126,6 +126,7 @@ const LLM = ({ content }: { content: Content }) => {
   const nonSelectedTabClasses = `${commonTabClasses}`;
   const tab1Classes = selectedTab === 1 ? selectedTabClasses : nonSelectedTabClasses;
   const tab2Classes = selectedTab === 2 ? selectedTabClasses : nonSelectedTabClasses;
+  const enabledOptionClasses = "bg-whitesmoke hover:bg-blue hover:text-whitesmoke";
   return (
     <LightBorderedDiv extraClasses={["w-1/2"]}>
       <H2 text="LLM (for generation)" />
@@ -140,7 +141,7 @@ const LLM = ({ content }: { content: Content }) => {
               <SubmitButton disabled={!modelName} text="Change" />
               <Select className="bg-whitesmoke w-3/4 border border-blue border-2" value={modelName} onChange={(_, newValue) => setModelName(newValue!)} slotProps={{ popup: { className: 'bg-whitesmoke border border-blue border-2 w-auto' } }}>
                 {supportedModels.map((model) => (
-                  <Option key={model} value={model}>{model}</Option>
+                  <Option className={enabledOptionClasses} key={model} value={model}>{model}</Option>
                 ))}
               </Select>
 
@@ -252,7 +253,7 @@ const ChatTemplateForm = ({ content }: { content: Content }) => {
     <form id="chatTemplateForm" onSubmit={handleSubmit}>
       <H4 extraClasses={["underline"]} text="Chat prompts" />
       <TextAreaFieldGroup label="Complete next chat:" currentVal={contextPrompt} onChange={setContextPrompt} initialVal={content.chat_prompts.context_prompt} />
-      <TextAreaFieldGroup label="Build a question based on history & context" currentVal={condensePrompt} onChange={setCondensePrompt} initialVal={content.chat_prompts.condense_prompt} />
+      <TextAreaFieldGroup label="Reframe a question using history" currentVal={condensePrompt} onChange={setCondensePrompt} initialVal={content.chat_prompts.condense_prompt} />
       <div className="flex flex-row gap-4">
         <SubmitButton text="Update chat prompts" disabled={!canSubmit} />
         <PrimaryButton text="Load default chat prompts" disabled={!canReset} onClick={(e) => {

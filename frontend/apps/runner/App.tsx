@@ -387,7 +387,7 @@ const ChatTemplatePanel = ({ content }: { content: Content }) => {
     <div id="chatTemplateForm" className="my-4 bg-whitesmoke p-2">
       <H4 extraClasses={["underline"]} text="Chat prompts" />
       <LabelledReadonlyTextArea label="Complete next chat:" value={content.chat_prompts.context_prompt} />
-      <LabelledReadonlyTextArea label="Build a question based on history & context:" value={content.chat_prompts.condense_prompt} />
+      <LabelledReadonlyTextArea label="Reframe a question using history:" value={content.chat_prompts.condense_prompt} />
     </div>
   );
 }

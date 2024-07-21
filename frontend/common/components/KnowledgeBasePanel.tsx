@@ -69,7 +69,7 @@ export const KnowledgeBasePanel = ({ content, allowEdits }: { content: Content, 
     const shouldBlockEmbeddingChanges = content.files.length > 0;
     // const shouldBlockEmbeddingChanges = false;
 
-
+    const enabledOptionClasses = "bg-whitesmoke hover:bg-blue hover:text-whitesmoke";
     return (
         <>
             <LightBorderedDiv extraClasses={["w-1/2"]}>
@@ -87,7 +87,7 @@ export const KnowledgeBasePanel = ({ content, allowEdits }: { content: Content, 
                                     <Select className="bg-whitesmoke w-3/4 border border-blue border-2" value={shouldBlockEmbeddingChanges ? "default" : embeddingName} onChange={(_, newValue) => setEmbeddingName(newValue!)} slotProps={{ popup: { className: 'bg-whitesmoke border border-blue border-2 w-auto hover:cursor-pointer' } }} disabled={shouldBlockEmbeddingChanges}>
                                         {shouldBlockEmbeddingChanges ? <Option value="default" disabled>Cannot change embedding model once files uploaded</Option> :
                                             supportedEmbeddings.map((embedding) => (
-                                                <Option key={embedding} value={embedding}>{embedding}</Option>
+                                                <Option className={enabledOptionClasses} key={embedding} value={embedding}>{embedding}</Option>
                                             ))}
                                     </Select>
 
