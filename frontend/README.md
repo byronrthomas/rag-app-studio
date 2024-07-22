@@ -1,30 +1,30 @@
-# React + TypeScript + Vite
+# RAG App Studio Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend code for RAG App Studio.
 
-Currently, two official plugins are available:
+It is built using Vite, ReactJS and Tailwind CSS.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Env vars
 
-## Expanding the ESLint configuration
+Using Vite's normal env var processing, we have non-secret variables stored in `.env.development` - used when
+we are running the frontend locally in the dev server, and also in `.env.production` - which is incorporated
+into the assets built into the containers.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+The only var we have is an API prefix. In production, our python webserver serves pre-built frontend assets
+statically, so the API prefix can be nothing - the frontend running at 
+`https://theta-edge-cloud-sever-whatever/index.html` is free to just request using a relative `/api/data` for example
+and the request goes to the correct place - the same webserver.
 
-- Configure the top-level `parserOptions` property like this:
+In dev, we will be running the frontend at `http://localhost:5173`, so we typically need to direct the API requests
+to either `http://localhost:8000` or similar or some `https://theta-edge-cloud-sever-whatever` that is our
+model deployment in the cloud.
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
+**IMPORTANT**: the API prefix should not end in '/' - for consistency the frontend code checks this and won't
+start if it's set, you can just take it off and leave the rest of the prefix. 
+A prefix of '' is fine - this is what production uses.
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+## Two builds
+
+Because this project has two distinct frontend apps & two distinct containers - a builder and runner, this Vite
+project also has two builds, selected between using two vite configs. They share common code under the `common`
+folder (public assets are also here), but they each have their own specific code under `apps/builder` and `apps/runner`
