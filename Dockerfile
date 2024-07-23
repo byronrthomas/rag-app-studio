@@ -2,7 +2,7 @@
 
 # Use a build argument to specify the base image tag
 ARG BASE_IMAGE_TAG=latest
-FROM byronthomas712/trial-container:${BASE_IMAGE_TAG}
+FROM byronthomas712/theta-vllm-llama-index:${BASE_IMAGE_TAG}
 LABEL org.opencontainers.image.authors="byron@humane-it.com"
 LABEL description="The builder application of RAG App Studio"
 
