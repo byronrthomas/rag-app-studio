@@ -116,7 +116,6 @@ const LLM = ({ content }: { content: Content }) => {
 
   const supportedModels = [
     "google/gemma-2b-it", "google/gemma-7b-it",
-    /* 18GB */ "google/gemma-2-9b-it",
     "mistralai/Mistral-7B-Instruct-v0.1",
     "meta-llama/Meta-Llama-3-8B-Instruct",
     "meta-llama/Llama-2-7b-chat-hf"];
